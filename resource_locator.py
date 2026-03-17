@@ -65,78 +65,197 @@ class ResourceMap:
     all_stores: List[Store]
 
 
-# Synthetic store database - simulates real-world data
-# Organized by zip code prefix for demo purposes
-# Base coordinates: Atlanta area (33.749, -84.388) for demo
+# Houston-focused store database
+# Coordinates are relative offsets from Houston center (29.76, -95.37)
 SYNTHETIC_STORES_DATABASE: Dict[str, List[Store]] = {
     "default": [
+        # ===== MAJOR GROCERY CHAINS =====
         Store(
-            name="SaveMart Grocery",
+            name="H-E-B #1 (Montrose)",
             store_type=StoreType.GROCERY,
             distance_miles=1.2,
             snap_accepted=True,
             wic_accepted=True,
             inventory_level=InventoryLevel.HIGH,
-            price_tier=3,
-            specialty_items=["organic produce", "gluten-free"],
-            hours="7am-10pm",
-            latitude=33.758,
-            longitude=-84.380
+            price_tier=2,
+            specialty_items=["Texas produce", "fresh tortillas", "Mi Tienda", "organic"],
+            hours="6am-11pm",
+            latitude=29.7505,
+            longitude=-95.3905
         ),
         Store(
-            name="Community Food Pantry",
-            store_type=StoreType.FOOD_PANTRY,
-            distance_miles=0.8,
-            snap_accepted=False,  # Free food
-            wic_accepted=False,
-            inventory_level=InventoryLevel.MEDIUM,
-            price_tier=1,  # Free
-            specialty_items=["canned goods", "bread", "produce"],
-            hours="Mon/Wed/Fri 10am-2pm",
-            latitude=33.754,
-            longitude=-84.392
-        ),
-        Store(
-            name="Budget Foods",
-            store_type=StoreType.DISCOUNT,
-            distance_miles=2.5,
-            snap_accepted=True,
-            wic_accepted=False,
-            inventory_level=InventoryLevel.HIGH,
-            price_tier=1,
-            specialty_items=["bulk items", "frozen foods"],
-            hours="8am-9pm",
-            latitude=33.765,
-            longitude=-84.410
-        ),
-        Store(
-            name="Fresh Farmers Market",
-            store_type=StoreType.FARMERS_MARKET,
-            distance_miles=1.8,
+            name="H-E-B #2 (Heights)",
+            store_type=StoreType.GROCERY,
+            distance_miles=2.8,
             snap_accepted=True,
             wic_accepted=True,
-            inventory_level=InventoryLevel.MEDIUM,
-            price_tier=2,
-            specialty_items=["local produce", "eggs", "honey"],
-            hours="Sat 8am-1pm",
-            latitude=33.742,
-            longitude=-84.375
-        ),
-        Store(
-            name="Whole Health Foods",
-            store_type=StoreType.SPECIALTY,
-            distance_miles=3.2,
-            snap_accepted=False,
-            wic_accepted=False,
             inventory_level=InventoryLevel.HIGH,
-            price_tier=5,
-            specialty_items=["supplements", "organic", "specialty diet"],
-            hours="9am-8pm",
-            latitude=33.770,
-            longitude=-84.365
+            price_tier=2,
+            specialty_items=["True Texas BBQ", "sushi bar", "organic produce"],
+            hours="6am-11pm",
+            latitude=29.7875,
+            longitude=-95.4010
         ),
         Store(
-            name="Dollar General",
+            name="H-E-B #3 (Bellaire)",
+            store_type=StoreType.GROCERY,
+            distance_miles=4.5,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=2,
+            specialty_items=["Asian foods", "kosher", "international"],
+            hours="6am-11pm",
+            latitude=29.7055,
+            longitude=-95.4585
+        ),
+        Store(
+            name="Kroger #1 (Midtown)",
+            store_type=StoreType.GROCERY,
+            distance_miles=0.8,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=3,
+            specialty_items=["Simple Truth organic", "Murray's Cheese", "pharmacy"],
+            hours="6am-12am",
+            latitude=29.7445,
+            longitude=-95.3755
+        ),
+        Store(
+            name="Kroger #2 (Montrose)",
+            store_type=StoreType.GROCERY,
+            distance_miles=1.5,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=3,
+            specialty_items=["deli", "bakery", "fuel points"],
+            hours="6am-12am",
+            latitude=29.7525,
+            longitude=-95.4055
+        ),
+        Store(
+            name="Kroger #3 (Memorial)",
+            store_type=StoreType.GROCERY,
+            distance_miles=5.2,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=3,
+            specialty_items=["organic", "prepared meals", "wine selection"],
+            hours="6am-11pm",
+            latitude=29.7745,
+            longitude=-95.4555
+        ),
+        Store(
+            name="Randalls (River Oaks)",
+            store_type=StoreType.GROCERY,
+            distance_miles=2.1,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=4,
+            specialty_items=["premium meats", "seafood", "Starbucks"],
+            hours="6am-10pm",
+            latitude=29.7555,
+            longitude=-95.4205
+        ),
+        
+        # ===== DISCOUNT STORES =====
+        Store(
+            name="Fiesta Mart #1 (East End)",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=2.3,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["Mexican groceries", "fresh produce", "carniceria", "tortilleria"],
+            hours="7am-10pm",
+            latitude=29.7355,
+            longitude=-95.3305
+        ),
+        Store(
+            name="Fiesta Mart #2 (Gulfton)",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=4.8,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["Latin foods", "African foods", "halal meat"],
+            hours="7am-10pm",
+            latitude=29.6955,
+            longitude=-95.4755
+        ),
+        Store(
+            name="Fiesta Mart #3 (Northside)",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=3.5,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["panaderia", "fresh seafood", "bulk beans/rice"],
+            hours="7am-10pm",
+            latitude=29.8055,
+            longitude=-95.3555
+        ),
+        Store(
+            name="ALDI (Westchase)",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=6.2,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["European imports", "organic", "seasonal items"],
+            hours="9am-8pm",
+            latitude=29.7355,
+            longitude=-95.5155
+        ),
+        Store(
+            name="ALDI (Meyerland)",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=5.5,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["fresh produce", "dairy", "frozen meals"],
+            hours="9am-8pm",
+            latitude=29.6855,
+            longitude=-95.4355
+        ),
+        Store(
+            name="Food Town #1",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=3.1,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=1,
+            specialty_items=["local produce", "meat market"],
+            hours="7am-9pm",
+            latitude=29.7855,
+            longitude=-95.3355
+        ),
+        Store(
+            name="Food Town #2",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=4.7,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=1,
+            specialty_items=["budget groceries", "weekly specials"],
+            hours="7am-9pm",
+            latitude=29.7255,
+            longitude=-95.4455
+        ),
+        Store(
+            name="Dollar General #1",
             store_type=StoreType.DISCOUNT,
             distance_miles=0.5,
             snap_accepted=True,
@@ -145,89 +264,574 @@ SYNTHETIC_STORES_DATABASE: Dict[str, List[Store]] = {
             price_tier=2,
             specialty_items=["canned goods", "snacks", "basic staples"],
             hours="8am-10pm",
-            latitude=33.751,
-            longitude=-84.385
+            latitude=29.7555,
+            longitude=-95.3655
         ),
         Store(
-            name="St. Mary's Food Bank",
-            store_type=StoreType.FOOD_PANTRY,
-            distance_miles=2.1,
-            snap_accepted=False,
-            wic_accepted=False,
-            inventory_level=InventoryLevel.HIGH,
-            price_tier=1,
-            specialty_items=["fresh produce", "meat", "dairy"],
-            hours="Tue/Thu 9am-3pm",
-            latitude=33.738,
-            longitude=-84.405
-        ),
-        Store(
-            name="ALDI",
+            name="Dollar General #2",
             store_type=StoreType.DISCOUNT,
-            distance_miles=4.0,
+            distance_miles=1.8,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.LOW,
+            price_tier=2,
+            specialty_items=["frozen foods", "household items"],
+            hours="8am-10pm",
+            latitude=29.7705,
+            longitude=-95.3855
+        ),
+        Store(
+            name="Family Dollar",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=1.3,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.LOW,
+            price_tier=2,
+            specialty_items=["pantry staples", "snacks", "drinks"],
+            hours="8am-9pm",
+            latitude=29.7455,
+            longitude=-95.3555
+        ),
+        Store(
+            name="Walmart Supercenter (Gessner)",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=7.5,
             snap_accepted=True,
             wic_accepted=True,
             inventory_level=InventoryLevel.HIGH,
             price_tier=1,
-            specialty_items=["produce", "dairy", "frozen", "specialty imports"],
-            hours="9am-8pm",
-            latitude=33.780,
-            longitude=-84.420
+            specialty_items=["everything", "pharmacy", "grocery pickup"],
+            hours="6am-11pm",
+            latitude=29.7355,
+            longitude=-95.5355
         ),
         Store(
-            name="Target",
+            name="Walmart Neighborhood Market",
+            store_type=StoreType.DISCOUNT,
+            distance_miles=3.8,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["groceries", "pharmacy", "fresh produce"],
+            hours="7am-10pm",
+            latitude=29.7155,
+            longitude=-95.4055
+        ),
+        
+        # ===== FOOD PANTRIES & FOOD BANKS =====
+        Store(
+            name="Houston Food Bank - Main",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=5.8,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["emergency food", "produce", "meat", "dairy"],
+            hours="Mon-Fri 8am-4:30pm",
+            latitude=29.7855,
+            longitude=-95.2555
+        ),
+        Store(
+            name="St. Vincent de Paul Food Pantry",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=1.5,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=1,
+            specialty_items=["canned goods", "bread", "fresh produce"],
+            hours="Tue/Thu 9am-12pm",
+            latitude=29.7505,
+            longitude=-95.3855
+        ),
+        Store(
+            name="Casa Juan Diego",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=2.2,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=1,
+            specialty_items=["groceries", "hygiene items", "clothing"],
+            hours="Mon-Fri 9am-4pm",
+            latitude=29.7705,
+            longitude=-95.4055
+        ),
+        Store(
+            name="SEARCH Homeless Services",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=1.8,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=1,
+            specialty_items=["hot meals", "groceries", "case management"],
+            hours="Mon-Fri 7am-3pm",
+            latitude=29.7625,
+            longitude=-95.3555
+        ),
+        Store(
+            name="Northwest Assistance Ministries",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=12.5,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["food pantry", "financial assistance", "thrift store"],
+            hours="Mon-Fri 8:30am-4pm",
+            latitude=29.9155,
+            longitude=-95.4955
+        ),
+        Store(
+            name="Interfaith Ministries - Meals on Wheels",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=2.5,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=1,
+            specialty_items=["senior meals", "delivery available"],
+            hours="Mon-Fri 8am-5pm",
+            latitude=29.7555,
+            longitude=-95.4105
+        ),
+        Store(
+            name="The Beacon Day Center",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=1.2,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=1,
+            specialty_items=["hot breakfast", "hot lunch", "groceries"],
+            hours="Mon-Fri 7am-2pm",
+            latitude=29.7625,
+            longitude=-95.3705
+        ),
+        
+        # ===== FARMERS MARKETS =====
+        Store(
+            name="Urban Harvest Farmers Market (Eastside)",
+            store_type=StoreType.FARMERS_MARKET,
+            distance_miles=2.8,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=3,
+            specialty_items=["local produce", "pastured eggs", "artisan bread"],
+            hours="Sat 8am-12pm",
+            latitude=29.7355,
+            longitude=-95.3355
+        ),
+        Store(
+            name="Rice University Farmers Market",
+            store_type=StoreType.FARMERS_MARKET,
+            distance_miles=3.2,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=3,
+            specialty_items=["organic produce", "honey", "jams", "flowers"],
+            hours="Tue 3:30pm-7pm",
+            latitude=29.7175,
+            longitude=-95.4055
+        ),
+        Store(
+            name="Heights Mercado",
+            store_type=StoreType.FARMERS_MARKET,
+            distance_miles=3.5,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=2,
+            specialty_items=["local vendors", "prepared foods", "produce"],
+            hours="Sat 9am-1pm",
+            latitude=29.7925,
+            longitude=-95.3955
+        ),
+        Store(
+            name="Canino Produce",
+            store_type=StoreType.FARMERS_MARKET,
+            distance_miles=4.2,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["wholesale produce", "Mexican groceries", "bulk deals"],
+            hours="Daily 6am-6pm",
+            latitude=29.8005,
+            longitude=-95.3505
+        ),
+        
+        # ===== INTERNATIONAL & SPECIALTY =====
+        Store(
+            name="99 Ranch Market (Chinatown)",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=6.5,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=2,
+            specialty_items=["Asian produce", "seafood", "dim sum", "imported goods"],
+            hours="8am-10pm",
+            latitude=29.7055,
+            longitude=-95.5555
+        ),
+        Store(
+            name="H Mart (Chinatown)",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=6.8,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=3,
+            specialty_items=["Korean groceries", "sushi", "Asian produce"],
+            hours="8am-10pm",
+            latitude=29.7075,
+            longitude=-95.5605
+        ),
+        Store(
+            name="Hong Kong Food Market",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=5.2,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=2,
+            specialty_items=["Chinese groceries", "live seafood", "BBQ"],
+            hours="9am-9pm",
+            latitude=29.6955,
+            longitude=-95.5055
+        ),
+        Store(
+            name="India Grocers",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=5.8,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=2,
+            specialty_items=["Indian spices", "lentils", "rice", "snacks"],
+            hours="10am-9pm",
+            latitude=29.7155,
+            longitude=-95.5205
+        ),
+        Store(
+            name="Phoenicia Specialty Foods",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=3.8,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=4,
+            specialty_items=["Middle Eastern", "Mediterranean", "deli", "bakery"],
+            hours="8am-9pm",
+            latitude=29.7405,
+            longitude=-95.4255
+        ),
+        Store(
+            name="Whole Foods Market (Montrose)",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=2.5,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=5,
+            specialty_items=["organic", "vegan", "supplements", "prepared foods"],
+            hours="8am-10pm",
+            latitude=29.7505,
+            longitude=-95.3955
+        ),
+        Store(
+            name="Whole Foods Market (Post Oak)",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=4.8,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=5,
+            specialty_items=["organic produce", "meat counter", "juice bar"],
+            hours="8am-10pm",
+            latitude=29.7455,
+            longitude=-95.4555
+        ),
+        Store(
+            name="Sprouts Farmers Market",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=6.2,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=3,
+            specialty_items=["organic produce", "bulk foods", "vitamins"],
+            hours="7am-10pm",
+            latitude=29.7305,
+            longitude=-95.5055
+        ),
+        Store(
+            name="Trader Joe's (Alabama)",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=2.2,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=3,
+            specialty_items=["private label", "frozen meals", "snacks", "wine"],
+            hours="8am-9pm",
+            latitude=29.7405,
+            longitude=-95.3955
+        ),
+        Store(
+            name="Central Market",
+            store_type=StoreType.SPECIALTY,
+            distance_miles=5.5,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=4,
+            specialty_items=["gourmet foods", "cheese", "wine", "prepared foods"],
+            hours="8am-10pm",
+            latitude=29.7455,
+            longitude=-95.4655
+        ),
+        
+        # ===== TARGET & WAREHOUSE =====
+        Store(
+            name="Target (Midtown)",
+            store_type=StoreType.GROCERY,
+            distance_miles=1.0,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=3,
+            specialty_items=["Good & Gather", "organic options", "drive up"],
+            hours="8am-10pm",
+            latitude=29.7455,
+            longitude=-95.3755
+        ),
+        Store(
+            name="Target (Galleria)",
             store_type=StoreType.GROCERY,
             distance_miles=5.5,
             snap_accepted=True,
             wic_accepted=True,
             inventory_level=InventoryLevel.HIGH,
             price_tier=3,
-            specialty_items=["organic", "fresh produce", "supplements"],
+            specialty_items=["full grocery", "fresh produce", "order pickup"],
             hours="8am-10pm",
-            latitude=33.795,
-            longitude=-84.360
+            latitude=29.7405,
+            longitude=-95.4655
         ),
         Store(
-            name="Neighborhood Co-op",
-            store_type=StoreType.SPECIALTY,
-            distance_miles=1.5,
+            name="Costco (Richmond)",
+            store_type=StoreType.GROCERY,
+            distance_miles=8.5,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=2,
+            specialty_items=["bulk items", "organic", "rotisserie chicken", "bakery"],
+            hours="10am-8:30pm",
+            latitude=29.7255,
+            longitude=-95.5655
+        ),
+        Store(
+            name="Sam's Club (Gessner)",
+            store_type=StoreType.GROCERY,
+            distance_miles=7.8,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=2,
+            specialty_items=["bulk groceries", "fresh bakery", "meat"],
+            hours="10am-8pm",
+            latitude=29.7355,
+            longitude=-95.5455
+        ),
+    ],
+    
+    # ===== ADDITIONAL STORES BY HOUSTON ZIP CODE PREFIX =====
+    "770": [  # Central Houston
+        Store(
+            name="Sellers Brothers #1",
+            store_type=StoreType.GROCERY,
+            distance_miles=3.2,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=2,
+            specialty_items=["Hispanic foods", "meat market", "produce"],
+            hours="7am-9pm",
+            latitude=29.7755,
+            longitude=-95.3455
+        ),
+        Store(
+            name="Gerland's Food Fair",
+            store_type=StoreType.GROCERY,
+            distance_miles=4.5,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=2,
+            specialty_items=["local chain", "meat counter", "deli"],
+            hours="7am-9pm",
+            latitude=29.7155,
+            longitude=-95.4255
+        ),
+    ],
+    "773": [  # North Houston / Spring / Woodlands
+        Store(
+            name="H-E-B (Spring)",
+            store_type=StoreType.GROCERY,
+            distance_miles=2.5,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=2,
+            specialty_items=["full service", "pharmacy", "curbside"],
+            hours="6am-11pm",
+            latitude=30.0505,
+            longitude=-95.4155
+        ),
+        Store(
+            name="Kroger (The Woodlands)",
+            store_type=StoreType.GROCERY,
+            distance_miles=3.8,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=3,
+            specialty_items=["organic", "deli", "bakery", "fuel center"],
+            hours="6am-11pm",
+            latitude=30.1555,
+            longitude=-95.4605
+        ),
+        Store(
+            name="Montgomery County Food Bank",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=5.2,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["emergency food", "senior boxes"],
+            hours="Mon-Fri 8am-4pm",
+            latitude=30.0705,
+            longitude=-95.4455
+        ),
+    ],
+    "774": [  # Katy / Sugar Land / West Houston
+        Store(
+            name="H-E-B (Katy)",
+            store_type=StoreType.GROCERY,
+            distance_miles=2.0,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=2,
+            specialty_items=["True Texas BBQ", "sushi", "pharmacy"],
+            hours="6am-11pm",
+            latitude=29.7855,
+            longitude=-95.7555
+        ),
+        Store(
+            name="Kroger (Sugar Land)",
+            store_type=StoreType.GROCERY,
+            distance_miles=3.5,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=3,
+            specialty_items=["full service", "Murray's Cheese", "fuel points"],
+            hours="6am-12am",
+            latitude=29.6205,
+            longitude=-95.6355
+        ),
+        Store(
+            name="Fort Bend County Food Pantry",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=4.8,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["emergency food", "produce", "dairy"],
+            hours="Mon-Fri 9am-3pm",
+            latitude=29.6105,
+            longitude=-95.6055
+        ),
+        Store(
+            name="LaCenterra Farmers Market",
+            store_type=StoreType.FARMERS_MARKET,
+            distance_miles=5.5,
             snap_accepted=True,
             wic_accepted=False,
             inventory_level=InventoryLevel.MEDIUM,
-            price_tier=4,
-            specialty_items=["local", "organic", "bulk bins", "specialty"],
-            hours="10am-7pm",
-            latitude=33.745,
-            longitude=-84.395
-        )
+            price_tier=3,
+            specialty_items=["local produce", "eggs", "honey", "baked goods"],
+            hours="Sat 9am-1pm",
+            latitude=29.7355,
+            longitude=-95.7755
+        ),
     ],
-    # Additional zip-code-specific stores can be added here
-    "303": [  # Denver area example
+    "775": [  # Pasadena / Clear Lake / Galveston area
         Store(
-            name="King Soopers",
+            name="H-E-B (Pasadena)",
             store_type=StoreType.GROCERY,
-            distance_miles=1.0,
+            distance_miles=2.2,
+            snap_accepted=True,
+            wic_accepted=True,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=2,
+            specialty_items=["full service", "butcher", "bakery"],
+            hours="6am-11pm",
+            latitude=29.6605,
+            longitude=-95.1505
+        ),
+        Store(
+            name="Kroger (Clear Lake)",
+            store_type=StoreType.GROCERY,
+            distance_miles=3.8,
             snap_accepted=True,
             wic_accepted=True,
             inventory_level=InventoryLevel.HIGH,
             price_tier=3,
-            specialty_items=["organic", "deli", "pharmacy"],
-            hours="6am-11pm"
+            specialty_items=["deli", "bakery", "pharmacy"],
+            hours="6am-11pm",
+            latitude=29.5505,
+            longitude=-95.1155
+        ),
+        Store(
+            name="Galveston County Food Bank",
+            store_type=StoreType.FOOD_PANTRY,
+            distance_miles=6.5,
+            snap_accepted=False,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.HIGH,
+            price_tier=1,
+            specialty_items=["emergency food", "disaster relief"],
+            hours="Mon-Fri 8am-5pm",
+            latitude=29.3005,
+            longitude=-94.7955
+        ),
+        Store(
+            name="Bay Area Farmers Market",
+            store_type=StoreType.FARMERS_MARKET,
+            distance_miles=4.2,
+            snap_accepted=True,
+            wic_accepted=False,
+            inventory_level=InventoryLevel.MEDIUM,
+            price_tier=2,
+            specialty_items=["local produce", "seafood", "Gulf shrimp"],
+            hours="Sun 11am-3pm",
+            latitude=29.5355,
+            longitude=-95.0205
         ),
     ],
-    "300": [  # Atlanta area example
-        Store(
-            name="Publix",
-            store_type=StoreType.GROCERY,
-            distance_miles=1.3,
-            snap_accepted=True,
-            wic_accepted=True,
-            inventory_level=InventoryLevel.HIGH,
-            price_tier=3,
-            specialty_items=["deli", "bakery", "organic"],
-            hours="7am-10pm"
-        ),
-    ]
 }
 
 # ZIP code coordinates for Houston metro area
@@ -472,8 +1076,9 @@ def get_stores_for_zip(zip_code: str) -> List[Store]:
     for store in default_stores:
         # Create a copy with adjusted coordinates
         # Offset based on distance (roughly 0.01 degrees ≈ 0.69 miles)
-        lat_offset = (store.latitude - 33.749) if store.latitude != 0 else 0
-        lon_offset = (store.longitude - (-84.388)) if store.longitude != 0 else 0
+        # Houston center: (29.76, -95.37)
+        lat_offset = (store.latitude - 29.76) if store.latitude != 0 else 0
+        lon_offset = (store.longitude - (-95.37)) if store.longitude != 0 else 0
         
         adjusted_store = Store(
             name=store.name,
@@ -493,8 +1098,8 @@ def get_stores_for_zip(zip_code: str) -> List[Store]:
     # Add any zip-specific stores
     if zip_prefix in SYNTHETIC_STORES_DATABASE:
         for store in SYNTHETIC_STORES_DATABASE[zip_prefix]:
-            lat_offset = (store.latitude - 33.749) if store.latitude != 0 else 0
-            lon_offset = (store.longitude - (-84.388)) if store.longitude != 0 else 0
+            lat_offset = (store.latitude - 29.76) if store.latitude != 0 else 0
+            lon_offset = (store.longitude - (-95.37)) if store.longitude != 0 else 0
             adjusted_store = Store(
                 name=store.name,
                 store_type=store.store_type,
