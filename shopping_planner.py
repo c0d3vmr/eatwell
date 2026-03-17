@@ -54,6 +54,9 @@ class ShoppingList:
     pantry_items: List[ShoppingListItem] = field(default_factory=list)  # From food pantries
     store_visits: Dict[str, List[ShoppingListItem]] = field(default_factory=dict)
     reasoning_log: List[str] = field(default_factory=list)  # For "Why?" questions
+    estimated_transport_cost: float = 0.0  # Total transportation costs
+    total_with_transport: float = 0.0  # Food + transport costs
+    transport_details: Dict[str, float] = field(default_factory=dict)  # Cost breakdown by store
 
 
 # Food database with pricing (simulated)
@@ -357,6 +360,36 @@ def generate_shopping_list(
             shopping_list.store_visits[store] = []
         shopping_list.store_visits[store].append(item)
     
+    # Calculate transportation costs based on unique stores to visit
+    total_transport = 0.0
+    transport_details = {}
+    
+    for store_name in shopping_list.store_visits.keys():
+        if store_name == "Any Store":
+            continue
+        # Find the travel feasibility for this store
+        for tf in resource_map.accessible_stores:
+            if tf.store.name == store_name:
+                transport_details[store_name] = tf.transit_cost
+                total_transport += tf.transit_cost
+                break
+    
+    # Add pantry visits transport costs
+    for pantry_item in shopping_list.pantry_items:
+        if pantry_item.suggested_store and pantry_item.suggested_store not in transport_details:
+            for tf in resource_map.food_pantries:
+                if tf.store.name == pantry_item.suggested_store:
+                    transport_details[pantry_item.suggested_store] = tf.transit_cost
+                    total_transport += tf.transit_cost
+                    break
+    
+    shopping_list.estimated_transport_cost = total_transport
+    shopping_list.total_with_transport = shopping_list.total_estimated_cost + total_transport
+    shopping_list.transport_details = transport_details
+    
+    if total_transport > 0:
+        reasoning.append(f"Transportation costs: ${total_transport:.2f} for {len(transport_details)} store visit(s)")
+    
     # Sort items by priority
     shopping_list.items.sort(key=lambda x: x.priority.value)
     
@@ -370,11 +403,26 @@ def print_shopping_list(shopping_list: ShoppingList, user_context: UserContext) 
     print("="*60)
     
     budget = user_context.financials.weekly_budget
-    print(f"\n💰 Budget: ${budget:.2f} | Estimated Total: ${shopping_list.total_estimated_cost:.2f}")
-    print(f"   Remaining: ${shopping_list.budget_remaining:.2f}")
+    print(f"\n💰 Budget: ${budget:.2f}")
+    print(f"   🛒 Food Cost: ${shopping_list.total_estimated_cost:.2f}")
+    
+    if shopping_list.estimated_transport_cost > 0:
+        print(f"   🚌 Transport Cost: ${shopping_list.estimated_transport_cost:.2f}")
+        print(f"   ─────────────────────")
+        print(f"   💵 Total: ${shopping_list.total_with_transport:.2f}")
+        print(f"   Remaining: ${budget - shopping_list.total_with_transport:.2f}")
+    else:
+        print(f"   Remaining: ${shopping_list.budget_remaining:.2f}")
     
     if user_context.financials.snap_status:
         print("   ✓ SNAP benefits applied")
+    
+    # Transportation breakdown
+    if shopping_list.transport_details and any(cost > 0 for cost in shopping_list.transport_details.values()):
+        print("\n🚌 TRANSPORTATION BREAKDOWN:")
+        for store_name, cost in shopping_list.transport_details.items():
+            if cost > 0:
+                print(f"   • {store_name}: ${cost:.2f} (round trip)")
     
     # Food Pantry recommendations
     if shopping_list.pantry_items:

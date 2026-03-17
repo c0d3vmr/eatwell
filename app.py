@@ -14,13 +14,28 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
+# Map visualization imports (optional)
+try:
+    import folium
+    from streamlit_folium import st_folium
+    FOLIUM_AVAILABLE = True
+except ImportError:
+    FOLIUM_AVAILABLE = False
+
+# Geolocation support (optional)
+try:
+    from streamlit_js_eval import get_geolocation
+    GEOLOCATION_AVAILABLE = True
+except ImportError:
+    GEOLOCATION_AVAILABLE = False
+
 # Import app modules
 from user_context import (
     UserContext, Financials, Logistics, MedicalHistory, LabResults,
     create_sample_user
 )
 from bio_analyzer import analyze_lab_data, NutrientPriorityList
-from resource_locator import resource_locator, ResourceMap, StoreType
+from resource_locator import resource_locator, ResourceMap, StoreType, get_base_coordinates
 from shopping_planner import (
     generate_shopping_list, ShoppingList, ShoppingPriority,
     get_item_explanation
@@ -1201,7 +1216,7 @@ def render_dashboard():
         st.metric(
             "Weekly Budget",
             f"${user.financials.weekly_budget:.0f}",
-            delta=f"${shopping.budget_remaining:.0f} left" if shopping.budget_remaining > 0 else None
+            delta=f"${user.financials.weekly_budget - shopping.total_with_transport:.0f} left" if shopping.total_with_transport <= user.financials.weekly_budget else "Over budget"
         )
     
     with col2:
@@ -1219,10 +1234,11 @@ def render_dashboard():
         )
     
     with col4:
+        transport_note = f"+${shopping.estimated_transport_cost:.0f} transport" if shopping.estimated_transport_cost > 0 else "no transport cost"
         st.metric(
-            "Shopping Items",
-            len(shopping.items),
-            delta=f"${shopping.total_estimated_cost:.0f} total"
+            "Total Cost",
+            f"${shopping.total_with_transport:.0f}",
+            delta=transport_note
         )
     
     st.markdown("---")
@@ -1260,12 +1276,32 @@ def render_shopping_list(shopping: ShoppingList, user: UserContext, nutrients: N
     """Render the shopping list tab."""
     st.markdown("## 🛒 Your Curated Shopping List")
     
-    # Budget bar
+    # Budget bar - now includes transportation
     budget = user.financials.weekly_budget
-    spent = shopping.total_estimated_cost
-    pct = min(100, (spent / budget) * 100) if budget > 0 else 0
+    food_cost = shopping.total_estimated_cost
+    transport_cost = shopping.estimated_transport_cost
+    total_cost = shopping.total_with_transport
+    pct = min(100, (total_cost / budget) * 100) if budget > 0 else 0
     
-    st.progress(pct / 100, text=f"Budget: ${spent:.2f} / ${budget:.2f}")
+    st.progress(pct / 100, text=f"Total Budget Used: ${total_cost:.2f} / ${budget:.2f}")
+    
+    # Cost breakdown
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("🛒 Food Cost", f"${food_cost:.2f}")
+    with col2:
+        st.metric("🚌 Transport Cost", f"${transport_cost:.2f}" if transport_cost > 0 else "Free")
+    with col3:
+        remaining = budget - total_cost
+        st.metric("💰 Remaining", f"${remaining:.2f}", delta=f"{'Over' if remaining < 0 else ''}")
+    
+    # Transport cost breakdown by store
+    if shopping.transport_details and any(cost > 0 for cost in shopping.transport_details.values()):
+        with st.expander("🚌 Transportation Cost Breakdown"):
+            for store_name, cost in shopping.transport_details.items():
+                if cost > 0:
+                    st.markdown(f"• **{store_name}**: ${cost:.2f} (round trip)")
+            st.caption("💡 Tip: Combine trips to save on transportation costs!")
     
     # Benefits badges
     badges = []
@@ -1385,10 +1421,116 @@ def render_nutrient_analysis(nutrients: NutrientPriorityList, user: UserContext)
 
 
 def render_store_finder(resources: ResourceMap, user: UserContext):
-    """Render the store finder tab."""
+    """Render the store finder tab with map visualization."""
     st.markdown("## 📍 Nearby Food Resources")
     
     st.info(f"📍 Showing results for ZIP: **{resources.user_zip}** | 🚗 Mobility: **{user.logistics.mobility_level.upper()}**")
+    
+    # Map visualization
+    if FOLIUM_AVAILABLE and resources.accessible_stores:
+        st.markdown("### 🗺️ Store Locations Map")
+        
+        # Get valid stores for markers
+        valid_stores = [tf for tf in resources.accessible_stores 
+                       if tf.store.latitude != 0 and tf.store.longitude != 0]
+        
+        if valid_stores:
+            # Center map on the user's zip code
+            center_lat, center_lon = get_base_coordinates(resources.user_zip)
+            
+            # Option to use current location (not stored)
+            user_lat, user_lon = None, None
+            if GEOLOCATION_AVAILABLE:
+                use_current_location = st.checkbox(
+                    "📍 Use my current location", 
+                    value=False,
+                    help="Your location is used only for the map and is NOT saved or stored."
+                )
+                
+                if use_current_location:
+                    with st.spinner("Getting your location..."):
+                        location = get_geolocation()
+                        if location and 'coords' in location:
+                            user_lat = location['coords']['latitude']
+                            user_lon = location['coords']['longitude']
+                            st.success("✅ Using your current location (not saved)")
+                        else:
+                            st.warning("Could not get location. Make sure location permissions are enabled.")
+            
+            # Create the map
+            m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
+            
+            # Add user location marker only if they opted in
+            if user_lat and user_lon:
+                folium.Marker(
+                    [user_lat, user_lon],
+                    popup="📍 Your Current Location (not saved)",
+                    tooltip="You are here",
+                    icon=folium.Icon(color='blue', icon='user', prefix='fa')
+                ).add_to(m)
+            
+            # Color mapping for store types
+            store_colors = {
+                StoreType.FOOD_PANTRY: 'green',
+                StoreType.GROCERY: 'red',
+                StoreType.DISCOUNT: 'orange',
+                StoreType.FARMERS_MARKET: 'purple',
+                StoreType.SPECIALTY: 'darkblue'
+            }
+            
+            store_icons = {
+                StoreType.FOOD_PANTRY: 'heart',
+                StoreType.GROCERY: 'shopping-cart',
+                StoreType.DISCOUNT: 'tag',
+                StoreType.FARMERS_MARKET: 'leaf',
+                StoreType.SPECIALTY: 'star'
+            }
+            
+            # Add store markers
+            for tf in valid_stores:
+                store = tf.store
+                color = store_colors.get(store.store_type, 'gray')
+                icon = store_icons.get(store.store_type, 'info-sign')
+                
+                # Build popup content
+                price_display = "FREE" if store.store_type == StoreType.FOOD_PANTRY else "$" * store.price_tier
+                snap_badge = "✓ SNAP" if store.snap_accepted else ""
+                wic_badge = "✓ WIC" if store.wic_accepted else ""
+                badges = " | ".join(filter(None, [snap_badge, wic_badge]))
+                
+                popup_html = f"""
+                <div style="width: 200px;">
+                    <h4 style="margin: 0 0 5px 0;">{store.name}</h4>
+                    <p style="margin: 2px 0;"><b>Price:</b> {price_display}</p>
+                    <p style="margin: 2px 0;"><b>Distance:</b> {store.distance_miles} mi</p>
+                    <p style="margin: 2px 0;"><b>Travel:</b> {tf.travel_method} (~{tf.estimated_time_minutes} min)</p>
+                    <p style="margin: 2px 0;"><b>Transport Cost:</b> ${tf.transit_cost:.2f}</p>
+                    <p style="margin: 2px 0;"><b>Hours:</b> {store.hours}</p>
+                    {f'<p style="margin: 2px 0; color: green;"><b>{badges}</b></p>' if badges else ''}
+                </div>
+                """
+                
+                folium.Marker(
+                    [store.latitude, store.longitude],
+                    popup=folium.Popup(popup_html, max_width=250),
+                    tooltip=f"{store.name} ({store.store_type.value.replace('_', ' ').title()})",
+                    icon=folium.Icon(color=color, icon=icon, prefix='fa')
+                ).add_to(m)
+            
+            # Display map
+            st_folium(m, width=700, height=400)
+            
+            # Map legend
+            st.markdown("""
+            **Map Legend:** 
+            🟢 Food Pantry (FREE) | 🔴 Grocery | 🟠 Discount | 🟣 Farmers Market | 🔵 Specialty
+            """)
+        else:
+            st.warning("Store locations not available for map display.")
+    elif not FOLIUM_AVAILABLE:
+        st.info("💡 Install `folium` and `streamlit-folium` for interactive map visualization.")
+    
+    st.markdown("---")
     
     # Food Pantries
     if resources.food_pantries:
@@ -1397,11 +1539,12 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
         for tf in resources.food_pantries:
             col1, col2 = st.columns([3, 1])
             with col1:
+                transport_note = f" | 🚌 ${tf.transit_cost:.2f} transit" if tf.transit_cost > 0 else ""
                 st.markdown(f"""
                 <div class="store-card">
                     <span class="free-badge">FREE</span>
                     <strong>{tf.store.name}</strong><br>
-                    📍 {tf.store.distance_miles} miles ({tf.travel_method}, ~{tf.estimated_time_minutes} min)<br>
+                    📍 {tf.store.distance_miles} miles ({tf.travel_method}, ~{tf.estimated_time_minutes} min){transport_note}<br>
                     🕐 {tf.store.hours}<br>
                     📦 Items: {', '.join(tf.store.specialty_items[:3])}
                 </div>
@@ -1418,6 +1561,7 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
         for tf in resources.snap_stores[:5]:
             if tf.store.store_type != StoreType.FOOD_PANTRY:
                 price_tier = "💲" * tf.store.price_tier
+                transport_note = f" | 🚌 ${tf.transit_cost:.2f}" if tf.transit_cost > 0 else ""
                 
                 col1, col2 = st.columns([3, 1])
                 with col1:
@@ -1426,7 +1570,7 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
                     <div class="store-card">
                         <span class="snap-badge">SNAP</span>{wic_badge}
                         <strong>{tf.store.name}</strong> {price_tier}<br>
-                        📍 {tf.store.distance_miles} miles ({tf.travel_method})<br>
+                        📍 {tf.store.distance_miles} miles ({tf.travel_method}{transport_note})<br>
                         📦 Inventory: {tf.store.inventory_level.value}
                     </div>
                     """, unsafe_allow_html=True)
@@ -1435,7 +1579,7 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
     
     st.markdown("---")
     
-    # All stores
+    # All stores with transportation costs
     st.markdown("### 🗺️ All Accessible Stores")
     
     store_data = []
@@ -1445,12 +1589,160 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
             "Type": tf.store.store_type.value.replace("_", " ").title(),
             "Distance": f"{tf.store.distance_miles} mi",
             "Travel": f"{tf.travel_method} ({tf.estimated_time_minutes} min)",
+            "Transport $": f"${tf.transit_cost:.2f}" if tf.transit_cost > 0 else "Free",
             "Price": "FREE" if tf.store.store_type == StoreType.FOOD_PANTRY else "💲" * tf.store.price_tier,
             "SNAP": "✓" if tf.store.snap_accepted else "—",
             "Score": f"{tf.accessibility_score:.0%}"
         })
     
     st.dataframe(store_data, use_container_width=True, hide_index=True)
+    
+    # =========================================================================
+    # TRADEOFF COMPARISON SECTION
+    # =========================================================================
+    st.markdown("---")
+    st.markdown("### ⚖️ Shopping Trip Tradeoffs")
+    st.markdown("*Compare the true cost of shopping at different stores (food prices + transportation)*")
+    
+    # Estimate average grocery spend based on price tier
+    # Price tier 1 = cheapest (~$40/trip), tier 5 = most expensive (~$80/trip)
+    def estimate_grocery_cost(price_tier: int, is_pantry: bool) -> float:
+        if is_pantry:
+            return 0.0
+        base_costs = {1: 35, 2: 45, 3: 55, 4: 65, 5: 80}
+        return base_costs.get(price_tier, 50)
+    
+    # Build comparison data
+    comparison_stores = []
+    for tf in resources.accessible_stores[:6]:
+        store = tf.store
+        is_pantry = store.store_type == StoreType.FOOD_PANTRY
+        
+        grocery_cost = estimate_grocery_cost(store.price_tier, is_pantry)
+        transport_cost = tf.transit_cost
+        total_trip_cost = grocery_cost + transport_cost
+        
+        # Generate Google Maps directions link
+        if store.latitude != 0 and store.longitude != 0:
+            maps_url = f"https://www.google.com/maps/dir/?api=1&destination={store.latitude},{store.longitude}&travelmode={'walking' if tf.travel_method == 'walk' else 'transit' if tf.travel_method == 'transit' else 'driving'}"
+        else:
+            maps_url = f"https://www.google.com/maps/search/?api=1&query={store.name.replace(' ', '+')}"
+        
+        comparison_stores.append({
+            "store": store,
+            "travel": tf,
+            "grocery_cost": grocery_cost,
+            "transport_cost": transport_cost,
+            "total_cost": total_trip_cost,
+            "maps_url": maps_url,
+            "is_pantry": is_pantry
+        })
+    
+    # Sort by total cost
+    comparison_stores.sort(key=lambda x: x["total_cost"])
+    
+    # Display comparison cards
+    for i, comp in enumerate(comparison_stores):
+        store = comp["store"]
+        tf = comp["travel"]
+        
+        # Determine if this is the best value
+        is_best = i == 0
+        
+        # Card styling
+        if comp["is_pantry"]:
+            card_style = "background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border: 2px solid #28a745;"
+            badge = "🆓 FREE FOOD"
+        elif is_best:
+            card_style = "background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); border: 2px solid #ffc107;"
+            badge = "⭐ BEST VALUE"
+        else:
+            card_style = "background: white; border: 1px solid #ddd;"
+            badge = ""
+        
+        col1, col2, col3 = st.columns([3, 2, 1])
+        
+        with col1:
+            st.markdown(f"""
+            <div style="{card_style} padding: 1rem; border-radius: 10px; margin: 0.5rem 0;">
+                {f'<span style="background:#28a745;color:white;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.8rem;float:right;">{badge}</span>' if badge else ''}
+                <h4 style="margin: 0 0 0.5rem 0; color: #333;">{store.name}</h4>
+                <p style="margin: 0.2rem 0; font-size: 0.9rem;">
+                    📍 <b>{store.distance_miles} mi</b> · {tf.travel_method} · ~{tf.estimated_time_minutes} min
+                </p>
+                <p style="margin: 0.2rem 0; font-size: 0.9rem;">
+                    🕐 {store.hours}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            if comp["is_pantry"]:
+                st.markdown("""
+                <div style="text-align: center; padding: 0.5rem;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #666;">Food Cost</p>
+                    <p style="margin: 0; font-size: 1.5rem; font-weight: bold; color: #28a745;">FREE</p>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: #666;">Transport</p>
+                    <p style="margin: 0; font-size: 1.1rem;">${comp['transport_cost']:.2f}</p>
+                    <hr style="margin: 0.5rem 0;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #666;">Total Trip</p>
+                    <p style="margin: 0; font-size: 1.3rem; font-weight: bold; color: #28a745;">${comp['total_cost']:.2f}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                price_display = "💲" * store.price_tier
+                st.markdown(f"""
+                <div style="text-align: center; padding: 0.5rem;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #666;">Est. Groceries {price_display}</p>
+                    <p style="margin: 0; font-size: 1.2rem;">~${comp['grocery_cost']:.0f}</p>
+                    <p style="margin: 0.3rem 0 0 0; font-size: 0.85rem; color: #666;">Transport</p>
+                    <p style="margin: 0; font-size: 1.1rem;">${comp['transport_cost']:.2f}</p>
+                    <hr style="margin: 0.5rem 0;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #666;">Total Trip</p>
+                    <p style="margin: 0; font-size: 1.3rem; font-weight: bold;">~${comp['total_cost']:.0f}</p>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown(f"""
+            <div style="text-align: center; padding: 1rem;">
+                <a href="{comp['maps_url']}" target="_blank" style="
+                    display: inline-block;
+                    padding: 0.5rem 1rem;
+                    background: #4285f4;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    font-size: 0.9rem;
+                ">🗺️ Directions</a>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Tradeoff insight
+    if len(comparison_stores) >= 2:
+        cheapest = comparison_stores[0]
+        closest_paid = next((c for c in comparison_stores if not c["is_pantry"]), None)
+        farthest_cheap = None
+        for c in comparison_stores:
+            if not c["is_pantry"] and c["store"].price_tier <= 2:
+                farthest_cheap = c
+                break
+        
+        st.markdown("---")
+        st.markdown("### 💡 Insights")
+        
+        if cheapest["is_pantry"]:
+            st.success(f"**Best option:** Visit **{cheapest['store'].name}** for free food! Even with ${cheapest['transport_cost']:.2f} transport, your total cost is only **${cheapest['total_cost']:.2f}**.")
+        
+        # Show tradeoff if there's a meaningful comparison
+        if farthest_cheap and closest_paid and farthest_cheap != closest_paid:
+            savings = closest_paid["total_cost"] - farthest_cheap["total_cost"]
+            extra_time = farthest_cheap["travel"].estimated_time_minutes - closest_paid["travel"].estimated_time_minutes
+            
+            if savings > 5:
+                st.info(f"**Tradeoff:** Going to **{farthest_cheap['store'].name}** (farther, cheaper) saves ~${savings:.0f} compared to **{closest_paid['store'].name}** (closer, pricier), but takes {abs(extra_time)} min {'more' if extra_time > 0 else 'less'} travel time.")
+            elif savings < -5:
+                st.info(f"**Tradeoff:** **{closest_paid['store'].name}** is closer and actually cheaper overall because you save on transport costs!")
 
 
 def render_why_section(shopping: ShoppingList, nutrients: NutrientPriorityList, user: UserContext):
