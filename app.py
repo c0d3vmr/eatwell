@@ -14,6 +14,13 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
+# Google Gemini import (optional - free AI chatbot)
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+
 # Map visualization imports (optional)
 try:
     import folium
@@ -235,6 +242,241 @@ st.markdown("""
 
 
 # =============================================================================
+# TRANSLATIONS - Spanish language support
+# =============================================================================
+
+TRANSLATIONS = {
+    # App header and navigation
+    "app_title": {"en": "EatWell", "es": "ComesBien"},
+    "personalized_nutrition": {"en": "Personalized Nutrition", "es": "Nutrición Personalizada"},
+    "personalized_nutrition_planning": {"en": "Personalized nutrition planning for everyone.", "es": "Planificación nutricional personalizada para todos."},
+    
+    # Main tabs
+    "my_plan": {"en": "My Plan", "es": "Mi Plan"},
+    "where_to_shop": {"en": "Where to Shop", "es": "Dónde Comprar"},
+    "why_this": {"en": "Why This?", "es": "¿Por Qué Esto?"},
+    "help": {"en": "Help", "es": "Ayuda"},
+    
+    # Sidebar
+    "start_over": {"en": "Start Over", "es": "Empezar de Nuevo"},
+    "update_plan": {"en": "Update Plan", "es": "Actualizar Plan"},
+    "adjust_budget": {"en": "Adjust Budget ($)", "es": "Ajustar Presupuesto ($)"},
+    "spanish_mode": {"en": "Español", "es": "Español"},
+    
+    # Welcome page
+    "budget_aware": {"en": "Budget-Aware", "es": "Consciente del Presupuesto"},
+    "works_with_snap_wic": {"en": "Works with SNAP/WIC", "es": "Funciona con SNAP/WIC"},
+    "science_based": {"en": "Science-Based", "es": "Basado en Ciencia"},
+    "personalized_to_you": {"en": "Personalized to you", "es": "Personalizado para ti"},
+    "location_smart": {"en": "Location-Smart", "es": "Ubicación Inteligente"},
+    "finds_nearby_stores": {"en": "Finds nearby stores", "es": "Encuentra tiendas cercanas"},
+    "quick_demo": {"en": "Quick Demo (Load Sample Data)", "es": "Demo Rápida (Cargar Datos de Ejemplo)"},
+    
+    # Wizard steps
+    "step_of": {"en": "Step", "es": "Paso"},
+    "of": {"en": "of", "es": "de"},
+    "budget_location": {"en": "Budget & Location", "es": "Presupuesto y Ubicación"},
+    "lets_start_basics": {"en": "Let's start with the basics to find affordable options near you.", "es": "Comencemos con lo básico para encontrar opciones económicas cerca de ti."},
+    "your_name": {"en": "Your Name (optional)", "es": "Tu Nombre (opcional)"},
+    "enter_your_name": {"en": "Enter your name", "es": "Ingresa tu nombre"},
+    "weekly_grocery_budget": {"en": "Weekly Grocery Budget ($)", "es": "Presupuesto Semanal ($)"},
+    "benefits": {"en": "Benefits", "es": "Beneficios"},
+    "zip_code": {"en": "ZIP Code", "es": "Código Postal"},
+    "transportation": {"en": "Transportation", "es": "Transporte"},
+    "car_access": {"en": "Car Access", "es": "Acceso a Auto"},
+    "public_transit": {"en": "Public Transit", "es": "Transporte Público"},
+    "grocery_trips_week": {"en": "Grocery Trips/Week", "es": "Viajes al Supermercado/Semana"},
+    "next": {"en": "Next", "es": "Siguiente"},
+    "back": {"en": "Back", "es": "Atrás"},
+    
+    # Health info step
+    "health_information": {"en": "Health Information", "es": "Información de Salud"},
+    "health_needs_optional": {"en": "Help us understand your health needs (all optional).", "es": "Ayúdanos a entender tus necesidades de salud (todo opcional)."},
+    "current_symptoms": {"en": "Current Symptoms", "es": "Síntomas Actuales"},
+    "family_health_history": {"en": "Family Health History", "es": "Historial de Salud Familiar"},
+    "food_allergies": {"en": "Food Allergies & Intolerances", "es": "Alergias e Intolerancias Alimentarias"},
+    "skip_to_results": {"en": "Skip to Results", "es": "Saltar a Resultados"},
+    
+    # Lab results step
+    "lab_results_optional": {"en": "Lab Results (Optional)", "es": "Resultados de Laboratorio (Opcional)"},
+    "lab_results_help": {"en": "If you have recent bloodwork, entering it makes recommendations more precise.", "es": "Si tienes análisis de sangre recientes, ingresarlos hace las recomendaciones más precisas."},
+    "no_lab_results": {"en": "No lab results? That's okay! Click 'Generate My Plan' to skip this step.", "es": "¿Sin resultados de laboratorio? ¡Está bien! Haz clic en 'Generar Mi Plan' para saltar este paso."},
+    "vitamin_levels": {"en": "Vitamin Levels", "es": "Niveles de Vitaminas"},
+    "health_markers": {"en": "Health Markers", "es": "Marcadores de Salud"},
+    "genetic_markers": {"en": "Genetic Markers (from special tests)", "es": "Marcadores Genéticos (de pruebas especiales)"},
+    "generate_my_plan": {"en": "Generate My Plan", "es": "Generar Mi Plan"},
+    
+    # Dashboard
+    "welcome_back": {"en": "Welcome back", "es": "Bienvenido de nuevo"},
+    "heres_your_plan": {"en": "Here's your personalized EatWell nutrition plan.", "es": "Aquí está tu plan de nutrición personalizado."},
+    "weekly_budget": {"en": "Weekly Budget", "es": "Presupuesto Semanal"},
+    "left": {"en": "left", "es": "restante"},
+    "over_budget": {"en": "Over budget", "es": "Sobre presupuesto"},
+    "priority_nutrients": {"en": "Priority Nutrients", "es": "Nutrientes Prioritarios"},
+    "critical": {"en": "critical", "es": "críticos"},
+    "nearby_stores": {"en": "Nearby Stores", "es": "Tiendas Cercanas"},
+    "pantries": {"en": "pantries", "es": "despensas"},
+    "total_cost": {"en": "Total Cost", "es": "Costo Total"},
+    "transport": {"en": "transport", "es": "transporte"},
+    "no_transport_cost": {"en": "no transport cost", "es": "sin costo de transporte"},
+    
+    # Shopping list
+    "your_shopping_list": {"en": "Your Curated Shopping List", "es": "Tu Lista de Compras Personalizada"},
+    "total_budget_used": {"en": "Total Budget Used", "es": "Presupuesto Total Usado"},
+    "food_cost": {"en": "Food Cost", "es": "Costo de Alimentos"},
+    "transport_cost": {"en": "Transport Cost", "es": "Costo de Transporte"},
+    "free": {"en": "Free", "es": "Gratis"},
+    "remaining": {"en": "Remaining", "es": "Restante"},
+    "over": {"en": "Over", "es": "Sobre"},
+    "transport_breakdown": {"en": "Transportation Cost Breakdown", "es": "Desglose de Costos de Transporte"},
+    "round_trip": {"en": "round trip", "es": "viaje redondo"},
+    "tip_combine_trips": {"en": "Tip: Combine trips to save on transportation costs!", "es": "Consejo: ¡Combina viajes para ahorrar en transporte!"},
+    "snap_applied": {"en": "SNAP Applied", "es": "SNAP Aplicado"},
+    "wic_applied": {"en": "WIC Applied", "es": "WIC Aplicado"},
+    "from_food_pantry": {"en": "From Food Pantry (FREE)", "es": "De la Despensa de Alimentos (GRATIS)"},
+    "items_to_purchase": {"en": "Items to Purchase", "es": "Artículos para Comprar"},
+    "critical_priority": {"en": "Critical", "es": "Crítico"},
+    "high_priority": {"en": "High Priority", "es": "Alta Prioridad"},
+    "moderate_priority": {"en": "Moderate", "es": "Moderado"},
+    "optional_priority": {"en": "Optional", "es": "Opcional"},
+    "nutrients": {"en": "Nutrients", "es": "Nutrientes"},
+    "suggested": {"en": "Suggested", "es": "Sugerido"},
+    "any_store": {"en": "Any store", "es": "Cualquier tienda"},
+    
+    # Nutrient analysis
+    "your_nutrient_analysis": {"en": "Your Nutrient Analysis", "es": "Tu Análisis de Nutrientes"},
+    "your_biomarkers": {"en": "Your Biomarkers", "es": "Tus Biomarcadores"},
+    "prioritized_nutrient_needs": {"en": "Prioritized Nutrient Needs", "es": "Necesidades de Nutrientes Priorizadas"},
+    "why_matters_for_you": {"en": "Why this matters for you:", "es": "Por qué esto te importa:"},
+    "related_markers": {"en": "Related markers", "es": "Marcadores relacionados"},
+    "best_food_sources": {"en": "Best food sources", "es": "Mejores fuentes de alimentos"},
+    
+    # Store finder
+    "nearby_food_resources": {"en": "Nearby Food Resources", "es": "Recursos Alimentarios Cercanos"},
+    "showing_results_for": {"en": "Showing results for ZIP", "es": "Mostrando resultados para código postal"},
+    "mobility": {"en": "Mobility", "es": "Movilidad"},
+    "store_locations_map": {"en": "Store Locations Map", "es": "Mapa de Ubicación de Tiendas"},
+    "use_current_location": {"en": "Use my current location", "es": "Usar mi ubicación actual"},
+    "location_not_saved": {"en": "Your location is used only for the map and is NOT saved or stored.", "es": "Tu ubicación solo se usa para el mapa y NO se guarda."},
+    "getting_location": {"en": "Getting your location...", "es": "Obteniendo tu ubicación..."},
+    "using_current_location": {"en": "Using your current location (not saved)", "es": "Usando tu ubicación actual (no guardada)"},
+    "could_not_get_location": {"en": "Could not get location. Make sure location permissions are enabled.", "es": "No se pudo obtener la ubicación. Asegúrate de que los permisos de ubicación estén habilitados."},
+    "food_pantries_free": {"en": "Food Pantries (FREE)", "es": "Despensas de Alimentos (GRATIS)"},
+    "snap_authorized_stores": {"en": "SNAP-Authorized Stores", "es": "Tiendas Autorizadas SNAP"},
+    "all_accessible_stores": {"en": "All Accessible Stores", "es": "Todas las Tiendas Accesibles"},
+    "score": {"en": "Score", "es": "Puntuación"},
+    "store": {"en": "Store", "es": "Tienda"},
+    "type": {"en": "Type", "es": "Tipo"},
+    "distance": {"en": "Distance", "es": "Distancia"},
+    "travel": {"en": "Travel", "es": "Viaje"},
+    "price": {"en": "Price", "es": "Precio"},
+    
+    # Why section
+    "ask_why": {"en": "Ask Why", "es": "Pregunta Por Qué"},
+    "understand_connection": {"en": "Understand the connection between your health markers and food recommendations.", "es": "Entiende la conexión entre tus marcadores de salud y las recomendaciones de alimentos."},
+    "select_item_explain": {"en": "Select an item to understand why it was recommended:", "es": "Selecciona un artículo para entender por qué fue recomendado:"},
+    "generate_list_first": {"en": "Generate a shopping list first to see explanations.", "es": "Genera una lista de compras primero para ver explicaciones."},
+    "biological_connection": {"en": "Biological Connection", "es": "Conexión Biológica"},
+    "nutrient_profile": {"en": "Nutrient Profile", "es": "Perfil de Nutrientes"},
+    "this_food_provides": {"en": "This food provides", "es": "Este alimento proporciona"},
+    "connected_to_symptoms": {"en": "Connected to your symptoms", "es": "Conectado a tus síntomas"},
+    "nutrient_deep_dive": {"en": "Nutrient Deep Dive", "es": "Profundización en Nutrientes"},
+    "select_nutrient_learn": {"en": "Select a nutrient to learn more:", "es": "Selecciona un nutriente para aprender más:"},
+    "priority_level": {"en": "Priority Level", "es": "Nivel de Prioridad"},
+    "why_it_matters": {"en": "Why it matters", "es": "Por qué importa"},
+    
+    # Learn section
+    "learn": {"en": "Learn", "es": "Aprender"},
+    "understanding_your_health": {"en": "Understanding Your Health", "es": "Entendiendo Tu Salud"},
+    "health_literacy_intro": {"en": "We believe everyone deserves to understand their health. Here's what these terms mean in plain language.", "es": "Creemos que todos merecen entender su salud. Esto es lo que significan estos términos en lenguaje sencillo."},
+    "terms_relevant_to_you": {"en": "Terms Relevant to You", "es": "Términos Relevantes para Ti"},
+    "based_on_profile": {"en": "Based on your health profile, here are the most important concepts to understand:", "es": "Basado en tu perfil de salud, estos son los conceptos más importantes que debes entender:"},
+    "what_is_it": {"en": "What is it?", "es": "¿Qué es?"},
+    "why_matters_for_you_learn": {"en": "Why it matters for you:", "es": "Por qué te importa:"},
+    "foods_that_help": {"en": "Foods that help", "es": "Alimentos que ayudan"},
+    "understanding_symptoms": {"en": "Understanding Your Symptoms", "es": "Entendiendo Tus Síntomas"},
+    "symptoms_explanation": {"en": "Here's what your symptoms might mean and how food can help:", "es": "Esto es lo que podrían significar tus síntomas y cómo la comida puede ayudar:"},
+    "what_it_means": {"en": "What it means", "es": "Qué significa"},
+    "common_causes": {"en": "Common causes", "es": "Causas comunes"},
+    "foods_can_help": {"en": "Foods that can help", "es": "Alimentos que pueden ayudar"},
+    "health_glossary": {"en": "Health Glossary", "es": "Glosario de Salud"},
+    "browse_health_terms": {"en": "Browse all health terms explained in plain language", "es": "Explora todos los términos de salud explicados en lenguaje sencillo"},
+    "search_term": {"en": "Search for a term:", "es": "Buscar un término:"},
+    "eg_search": {"en": "e.g., B12, inflammation, SNAP", "es": "ej., B12, inflamación, SNAP"},
+    "no_terms_found": {"en": "No terms found matching", "es": "No se encontraron términos que coincidan con"},
+    "quick_tips": {"en": "Quick Tips for Healthy Eating on a Budget", "es": "Consejos Rápidos para Comer Saludable con Presupuesto"},
+    "shopping_smart": {"en": "Shopping Smart:", "es": "Compras Inteligentes:"},
+    "using_food_assistance": {"en": "Using Food Assistance:", "es": "Usando Asistencia Alimentaria:"},
+    "cooking_tips": {"en": "Cooking Tips:", "es": "Consejos de Cocina:"},
+    "reading_your_body": {"en": "Reading Your Body:", "es": "Escucha a Tu Cuerpo:"},
+    
+    # Chatbot
+    "ask_nutrition_assistant": {"en": "Ask Your Nutrition Assistant", "es": "Pregunta a Tu Asistente de Nutrición"},
+    "ai_settings": {"en": "AI Settings", "es": "Configuración de IA"},
+    "ai_provider": {"en": "AI Provider", "es": "Proveedor de IA"},
+    "type_question_here": {"en": "Type your question here...", "es": "Escribe tu pregunta aquí..."},
+    "ask_ai": {"en": "Ask AI", "es": "Pregunta a IA"},
+    
+    # Disclaimer
+    "disclaimer": {"en": "This app provides nutrition education, not medical advice. Consult a healthcare provider for medical decisions.", "es": "Esta aplicación proporciona educación nutricional, no consejo médico. Consulta a un profesional de salud para decisiones médicas."},
+    "full_disclaimer": {"en": "This app provides general nutrition information for educational purposes. It is not medical advice. Always consult with a healthcare provider for personalized medical guidance.", "es": "Esta aplicación proporciona información nutricional general con fines educativos. No es consejo médico. Siempre consulta con un profesional de salud para orientación médica personalizada."},
+    
+    # Symptoms
+    "Fatigue": {"en": "Fatigue", "es": "Fatiga"},
+    "Brain Fog": {"en": "Brain Fog", "es": "Niebla Mental"},
+    "Joint Pain": {"en": "Joint Pain", "es": "Dolor Articular"},
+    "Anxiety": {"en": "Anxiety", "es": "Ansiedad"},
+    "Poor Sleep": {"en": "Poor Sleep", "es": "Mal Sueño"},
+    "Digestive Issues": {"en": "Digestive Issues", "es": "Problemas Digestivos"},
+    "Weak Immunity": {"en": "Weak Immunity", "es": "Inmunidad Débil"},
+    "Headaches": {"en": "Headaches", "es": "Dolores de Cabeza"},
+    "Skin Problems": {"en": "Skin Problems", "es": "Problemas de Piel"},
+    "Muscle Cramps": {"en": "Muscle Cramps", "es": "Calambres Musculares"},
+    "Mood Swings": {"en": "Mood Swings", "es": "Cambios de Humor"},
+    "Hair Loss": {"en": "Hair Loss", "es": "Pérdida de Cabello"},
+    "Cold Hands/Feet": {"en": "Cold Hands/Feet", "es": "Manos/Pies Fríos"},
+    "Dizziness": {"en": "Dizziness", "es": "Mareos"},
+    "Shortness of Breath": {"en": "Shortness of Breath", "es": "Falta de Aliento"},
+    
+    # Family history
+    "Diabetes": {"en": "Diabetes", "es": "Diabetes"},
+    "Heart Disease": {"en": "Heart Disease", "es": "Enfermedad Cardíaca"},
+    "Hypertension": {"en": "Hypertension", "es": "Hipertensión"},
+    "Cancer": {"en": "Cancer", "es": "Cáncer"},
+    "Obesity": {"en": "Obesity", "es": "Obesidad"},
+    "Thyroid Issues": {"en": "Thyroid Issues", "es": "Problemas de Tiroides"},
+    "Alzheimer's/Dementia": {"en": "Alzheimer's/Dementia", "es": "Alzheimer/Demencia"},
+    "Autoimmune Disease": {"en": "Autoimmune Disease", "es": "Enfermedad Autoinmune"},
+    "Mental Health Conditions": {"en": "Mental Health Conditions", "es": "Condiciones de Salud Mental"},
+    
+    # Allergies
+    "Gluten": {"en": "Gluten", "es": "Gluten"},
+    "Dairy": {"en": "Dairy", "es": "Lácteos"},
+    "Shellfish": {"en": "Shellfish", "es": "Mariscos"},
+    "Tree Nuts": {"en": "Tree Nuts", "es": "Frutos Secos"},
+    "Peanuts": {"en": "Peanuts", "es": "Maní"},
+    "Eggs": {"en": "Eggs", "es": "Huevos"},
+    "Soy": {"en": "Soy", "es": "Soja"},
+    "Fish": {"en": "Fish", "es": "Pescado"},
+    "Corn": {"en": "Corn", "es": "Maíz"},
+    "Sesame": {"en": "Sesame", "es": "Sésamo"},
+    "Nightshades": {"en": "Nightshades", "es": "Solanáceas"},
+    "Sulfites": {"en": "Sulfites", "es": "Sulfitos"},
+    "Histamine": {"en": "Histamine", "es": "Histamina"},
+    "FODMAPs": {"en": "FODMAPs", "es": "FODMAPs"},
+    "Latex-Fruit": {"en": "Latex-Fruit", "es": "Látex-Frutas"},
+}
+
+
+def t(key: str, default: str = None) -> str:
+    """Get translated text based on current language setting."""
+    lang = "es" if st.session_state.get("spanish_mode", False) else "en"
+    if key in TRANSLATIONS:
+        return TRANSLATIONS[key].get(lang, TRANSLATIONS[key].get("en", default or key))
+    return default or key
+
+
+# =============================================================================
 # HEALTH LITERACY CONTENT - Plain language explanations
 # =============================================================================
 
@@ -426,6 +668,8 @@ def init_session_state():
         st.session_state.shopping_list = None
     if 'analysis_complete' not in st.session_state:
         st.session_state.analysis_complete = False
+    if 'spanish_mode' not in st.session_state:
+        st.session_state.spanish_mode = False
     if 'chat_messages' not in st.session_state:
         st.session_state.chat_messages = [
             {"role": "assistant", "content": "Hi! I'm your EatWell nutrition assistant. 🥕 Ask me anything about health terms, nutrients, foods, or how to use this app. I'm here to help you understand your health in plain language!"}
@@ -433,6 +677,16 @@ def init_session_state():
     if 'openai_api_key' not in st.session_state:
         # Check environment variable first
         st.session_state.openai_api_key = os.environ.get('OPENAI_API_KEY', '')
+    if 'gemini_api_key' not in st.session_state:
+        st.session_state.gemini_api_key = os.environ.get('GEMINI_API_KEY', '')
+    if 'ai_provider' not in st.session_state:
+        # Auto-select based on available keys
+        if st.session_state.gemini_api_key:
+            st.session_state.ai_provider = 'gemini'
+        elif st.session_state.openai_api_key:
+            st.session_state.ai_provider = 'openai'
+        else:
+            st.session_state.ai_provider = 'gemini'  # Default to Gemini (free)
     
     # Wizard state
     if 'wizard_step' not in st.session_state:
@@ -467,7 +721,39 @@ def init_session_state():
 
 def build_system_prompt() -> str:
     """Build a system prompt for the AI chatbot with health context."""
-    base_prompt = """You are a friendly, helpful nutrition assistant for EatWell, an app focused on health equity. Your role is to:
+    # Check if Spanish mode is enabled
+    spanish_mode = st.session_state.get("spanish_mode", False)
+    
+    if spanish_mode:
+        base_prompt = """Eres un asistente de nutrición amigable y servicial para EatWell, una aplicación enfocada en la equidad en salud. IMPORTANTE: Responde SIEMPRE en español. Tu rol es:
+
+1. Explicar conceptos de salud y nutrición en lenguaje simple y claro que cualquiera pueda entender
+2. Ayudar a los usuarios a entender sus resultados de laboratorio, síntomas y necesidades de nutrientes
+3. Proporcionar recomendaciones alimentarias para problemas de salud
+4. Ser especialmente útil para personas con poca educación en salud - evita jerga técnica, usa ejemplos
+5. Ser sensible a las restricciones de presupuesto y los desafíos de acceso a alimentos
+6. Enfocarte en consejos prácticos y aplicables
+
+Términos de salud clave para explicar de forma simple cuando se pregunte:
+- MTHFR: Un gen que afecta cómo tu cuerpo usa las vitaminas B (folato, B12). Algunas personas tienen variaciones que significan que necesitan más de estas vitaminas.
+- Metilación: Cómo tu cuerpo activa las vitaminas y procesa los nutrientes. Piensa en ello como el "sistema de procesamiento" de tu cuerpo.
+- Homocisteína: Un aminoácido en la sangre. Niveles altos pueden indicar que necesitas más vitaminas B.
+- CRP: Un marcador de inflamación en el cuerpo. Mayor = más inflamación.
+- Ferritina: Muestra cuánto hierro tiene almacenado tu cuerpo.
+- B12: Vitamina esencial para la energía, función cerebral y salud de la sangre.
+- Folato: Una vitamina B necesaria para el crecimiento celular, especialmente importante durante el embarazo.
+- Vitamina D: La "vitamina del sol" - importante para los huesos, el estado de ánimo y el sistema inmunológico.
+
+Consejos de nutrición económicos:
+- Los huevos, frijoles y lentejas son fuentes de proteína económicas
+- Las verduras congeladas son igual de nutritivas que las frescas
+- El pescado enlatado (sardinas, salmón) proporciona omega-3 de forma económica
+- La avena es un desayuno económico y llenador
+- ¡Los beneficios de SNAP se pueden usar en mercados de agricultores (a menudo se duplican!)
+
+Siempre sé alentador y sin juzgar. Encuentra a las personas donde están. RECUERDA: Responde siempre en español."""
+    else:
+        base_prompt = """You are a friendly, helpful nutrition assistant for EatWell, an app focused on health equity. Your role is to:
 
 1. Explain health and nutrition concepts in simple, plain language that anyone can understand
 2. Help users understand their lab results, symptoms, and nutrient needs
@@ -501,11 +787,11 @@ Always be encouraging and non-judgmental. Meet people where they are."""
         nutrients = st.session_state.nutrient_priorities
         
         context_info = "\n\nCurrent user context:\n"
-        context_info += f"- Budget: ${user.financials.weekly_grocery_budget}/week\n"
-        context_info += f"- SNAP: {'Yes' if user.financials.snap_eligible else 'No'}\n"
+        context_info += f"- Budget: ${user.financials.weekly_budget}/week\n"
+        context_info += f"- SNAP: {'Yes' if user.financials.snap_status else 'No'}\n"
         
-        if user.medical.symptoms:
-            context_info += f"- Symptoms: {', '.join(user.medical.symptoms)}\n"
+        if user.medical.current_symptoms:
+            context_info += f"- Symptoms: {', '.join(user.medical.current_symptoms)}\n"
         
         if nutrients and nutrients.needs:
             top_nutrients = [n.nutrient for n in nutrients.needs[:5]]
@@ -517,37 +803,69 @@ Always be encouraging and non-judgmental. Meet people where they are."""
 
 
 def get_ai_response(user_message: str) -> Optional[str]:
-    """Get a response from OpenAI API."""
-    if not OPENAI_AVAILABLE or not st.session_state.openai_api_key:
-        return None
+    """Get a response from AI (Gemini or OpenAI)."""
+    provider = st.session_state.ai_provider
     
-    try:
-        client = OpenAI(api_key=st.session_state.openai_api_key)
-        
-        # Build messages with conversation history (last 10 messages)
-        messages = [{"role": "system", "content": build_system_prompt()}]
-        
-        # Add recent conversation history
-        recent_messages = st.session_state.chat_messages[-10:]
-        for msg in recent_messages:
-            messages.append({"role": msg["role"], "content": msg["content"]})
-        
-        # Add current user message
-        messages.append({"role": "user", "content": user_message})
-        
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",  # Cost-effective, fast model
-            messages=messages,
-            max_tokens=500,
-            temperature=0.7
-        )
-        
-        return response.choices[0].message.content
+    # Try Gemini first if selected
+    if provider == 'gemini' and GEMINI_AVAILABLE and st.session_state.gemini_api_key:
+        try:
+            genai.configure(api_key=st.session_state.gemini_api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash')  # Free, fast model
+            
+            # Build prompt with system context and conversation history
+            system_prompt = build_system_prompt()
+            
+            # Build conversation history
+            history = ""
+            recent_messages = st.session_state.chat_messages[-10:]
+            for msg in recent_messages:
+                role = "User" if msg["role"] == "user" else "Assistant"
+                history += f"{role}: {msg['content']}\n\n"
+            
+            full_prompt = f"""{system_prompt}
+
+Conversation so far:
+{history}
+
+User: {user_message}
+
+Assistant:"""
+            
+            response = model.generate_content(full_prompt)
+            return response.text
+        except Exception as e:
+            st.session_state.ai_error = str(e)
+            return None
     
-    except Exception as e:
-        # Return None on error - will fall back to rule-based
-        st.session_state.ai_error = str(e)
-        return None
+    # Try OpenAI if selected
+    if provider == 'openai' and OPENAI_AVAILABLE and st.session_state.openai_api_key:
+        try:
+            client = OpenAI(api_key=st.session_state.openai_api_key)
+            
+            # Build messages with conversation history (last 10 messages)
+            messages = [{"role": "system", "content": build_system_prompt()}]
+            
+            # Add recent conversation history
+            recent_messages = st.session_state.chat_messages[-10:]
+            for msg in recent_messages:
+                messages.append({"role": msg["role"], "content": msg["content"]})
+            
+            # Add current user message
+            messages.append({"role": "user", "content": user_message})
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",  # Cost-effective, fast model
+                messages=messages,
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            return response.choices[0].message.content
+        except Exception as e:
+            st.session_state.ai_error = str(e)
+            return None
+    
+    return None
 
 
 def get_chatbot_response(user_message: str) -> str:
@@ -570,7 +888,35 @@ def get_rule_based_response(user_message: str) -> str:
     This is the fallback when AI is not available.
     """
     message_lower = user_message.lower().strip()
+    spanish_mode = st.session_state.get("spanish_mode", False)
     
+    # Spanish responses when spanish mode is on
+    if spanish_mode:
+        # Check for greetings in Spanish or English
+        greetings = ['hi', 'hello', 'hey', 'help', 'start', 'hola', 'ayuda', 'comenzar']
+        if any(message_lower == g or message_lower.startswith(g + ' ') for g in greetings):
+            return """¡Hola! Estoy aquí para ayudarte a entender la nutrición y la salud. Aquí hay algunas cosas que puedes preguntarme:
+
+• **"¿Qué es MTHFR?"** - Aprende sobre términos de salud
+• **"¿Por qué necesito B12?"** - Entiende los nutrientes
+• **"¿Qué alimentos ayudan con la fatiga?"** - Obtén sugerencias de alimentos
+• **"¿Cómo uso esta aplicación?"** - Obtén orientación
+• **"¿Qué es SNAP?"** - Aprende sobre asistencia alimentaria
+
+¿Qué te gustaría saber?"""
+        
+        # Default Spanish response
+        return """No estoy seguro de haber entendido eso. Aquí hay algunas cosas que puedes preguntarme:
+
+• **Términos de salud:** "¿Qué es MTHFR?" "¿Qué significa CRP?"
+• **Síntomas:** "¿Por qué estoy cansado?" "¿Qué ayuda con la niebla mental?"
+• **Consejos de alimentos:** "¿Qué alimentos reducen la inflamación?"
+• **Ayuda con la app:** "¿Cómo uso esta aplicación?"
+• **Beneficios:** "¿Qué es SNAP?" "¿Cómo funciona WIC?"
+
+¡O simplemente describe lo que te interesa y trataré de ayudar!"""
+    
+    # English responses (original logic)
     # Check for greetings
     greetings = ['hi', 'hello', 'hey', 'help', 'start']
     if any(message_lower == g or message_lower.startswith(g + ' ') for g in greetings):
@@ -771,28 +1117,23 @@ Or just describe what you're curious about and I'll try to help!"""
 
 def render_chatbot():
     """Render the chatbot interface."""
-    st.markdown("### 💬 Ask Your Nutrition Assistant")
+    st.markdown(f"### 💬 {t('ask_nutrition_assistant')}")
     
-    # AI status indicator and API key input
-    if OPENAI_AVAILABLE:
-        with st.expander("🤖 AI Settings", expanded=False):
-            api_key = st.text_input(
-                "OpenAI API Key (optional)",
-                value=st.session_state.openai_api_key,
-                type="password",
-                help="Enter your OpenAI API key to enable AI-powered responses. Without it, I'll use built-in responses.",
-                key="api_key_input"
-            )
-            if api_key != st.session_state.openai_api_key:
-                st.session_state.openai_api_key = api_key
-            
-            if st.session_state.openai_api_key:
-                st.success("✅ AI Mode: Powered by GPT-4")
-            else:
-                st.info("💡 Basic Mode: Using built-in health knowledge")
-                st.caption("Add an API key above to ask any question!")
+    # Simple AI status indicator (API keys come from environment variables)
+    if st.session_state.gemini_api_key:
+        st.caption("✨ Powered by Gemini AI")
+    elif st.session_state.openai_api_key:
+        st.caption("✨ Powered by GPT-4")
     else:
         st.caption("Ask me about health terms, nutrients, or how to use this app!")
+    
+    # Update the initial greeting based on language
+    spanish_mode = st.session_state.get("spanish_mode", False)
+    if st.session_state.chat_messages and len(st.session_state.chat_messages) == 1:
+        if spanish_mode:
+            st.session_state.chat_messages[0]["content"] = "¡Hola! Soy tu asistente de nutrición de EatWell. 🥕 Pregúntame sobre términos de salud, nutrientes, alimentos o cómo usar esta aplicación. ¡Estoy aquí para ayudarte a entender tu salud en un lenguaje sencillo!"
+        else:
+            st.session_state.chat_messages[0]["content"] = "Hi! I'm your EatWell nutrition assistant. 🥕 Ask me anything about health terms, nutrients, foods, or how to use this app. I'm here to help you understand your health in plain language!"
     
     # Chat container (taller now that it's in a tab)
     chat_container = st.container(height=450)
@@ -802,13 +1143,8 @@ def render_chatbot():
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
     
-    # Show any AI errors
-    if hasattr(st.session_state, 'ai_error') and st.session_state.ai_error:
-        st.warning(f"AI unavailable, using basic mode. Error: {st.session_state.ai_error[:100]}")
-        st.session_state.ai_error = None
-    
     # Chat input
-    if prompt := st.chat_input("Type your question here...", key="chat_input"):
+    if prompt := st.chat_input(t("type_question_here"), key="chat_input"):
         # Add user message
         st.session_state.chat_messages.append({"role": "user", "content": prompt})
         
@@ -823,7 +1159,15 @@ def render_sidebar():
     """Render a minimal sidebar."""
     with st.sidebar:
         st.markdown('<h2 style="color: #4f7e52; margin-bottom: 0.5rem;">🥕 EatWell</h2>', unsafe_allow_html=True)
-        st.caption("Personalized Nutrition")
+        st.caption(t("personalized_nutrition"))
+        
+        # Spanish language toggle
+        st.session_state.spanish_mode = st.checkbox(
+            "🇪🇸 Español",
+            value=st.session_state.spanish_mode,
+            help="Toggle Spanish translation / Activar traducción al español"
+        )
+        
         st.markdown("---")
         
         if st.session_state.analysis_complete:
@@ -832,7 +1176,7 @@ def render_sidebar():
             
             st.markdown(f"**👤 {user.name}**")
             st.caption(f"📍 {user.logistics.zip_code}")
-            st.caption(f"💰 ${user.financials.weekly_budget:.0f}/week budget")
+            st.caption(f"💰 ${user.financials.weekly_budget:.0f}/{t('weekly_budget').lower()}")
             
             if user.financials.snap_status:
                 st.caption("✅ SNAP")
@@ -843,7 +1187,7 @@ def render_sidebar():
             
             # Quick budget adjustment
             new_budget = st.slider(
-                "Adjust Budget ($)", 
+                t("adjust_budget"), 
                 20, 300, 
                 int(user.financials.weekly_budget), 
                 step=5,
@@ -851,7 +1195,7 @@ def render_sidebar():
             )
             
             if new_budget != user.financials.weekly_budget:
-                if st.button("🔄 Update Plan", use_container_width=True):
+                if st.button(f"🔄 {t('update_plan')}", use_container_width=True):
                     user.financials.weekly_budget = float(new_budget)
                     run_analysis()
                     st.rerun()
@@ -859,7 +1203,7 @@ def render_sidebar():
             st.markdown("---")
             
             # Start over option
-            if st.button("🔄 Start Over", use_container_width=True):
+            if st.button(f"🔄 {t('start_over')}", use_container_width=True):
                 st.session_state.analysis_complete = False
                 st.session_state.user_context = None
                 st.session_state.wizard_step = 1
@@ -892,17 +1236,6 @@ def render_sidebar():
         else:
             # Before analysis: minimal sidebar, wizard is in main area
             st.info("👉 Use the form in the main area to get started!")
-            
-            # Optional: AI chatbot settings
-            with st.expander("🤖 AI Settings"):
-                api_key = st.text_input(
-                    "OpenAI API Key (optional)",
-                    type="password",
-                    value=st.session_state.openai_api_key,
-                    help="For enhanced AI chat responses"
-                )
-                if api_key != st.session_state.openai_api_key:
-                    st.session_state.openai_api_key = api_key
 
 
 def run_analysis():
@@ -976,7 +1309,7 @@ def render_wizard():
     data = st.session_state.wizard_data
     
     # Progress indicator
-    st.markdown("### Step " + str(step) + " of 3")
+    st.markdown(f"### {t('step_of')} " + str(step) + f" {t('of')} 3")
     progress = step / 3
     st.progress(progress)
     
@@ -984,16 +1317,16 @@ def render_wizard():
     
     if step == 1:
         # Step 1: Budget & Location
-        st.markdown("## 💰 Budget & Location")
-        st.caption("Let's start with the basics to find affordable options near you.")
+        st.markdown(f"## 💰 {t('budget_location')}")
+        st.caption(t("lets_start_basics"))
         
         col1, col2 = st.columns(2)
         
         with col1:
-            data['name'] = st.text_input("Your Name (optional)", value=data['name'], placeholder="Enter your name")
-            data['weekly_budget'] = st.slider("Weekly Grocery Budget ($)", 20, 300, data['weekly_budget'], step=5)
+            data['name'] = st.text_input(t("your_name"), value=data['name'], placeholder=t("enter_your_name"))
+            data['weekly_budget'] = st.slider(t("weekly_grocery_budget"), 20, 300, data['weekly_budget'], step=5)
             
-            st.markdown("**Benefits**")
+            st.markdown(f"**{t('benefits')}**")
             col_snap, col_wic = st.columns(2)
             with col_snap:
                 data['snap_status'] = st.checkbox("SNAP", value=data['snap_status'])
@@ -1001,29 +1334,29 @@ def render_wizard():
                 data['wic_status'] = st.checkbox("WIC", value=data['wic_status'])
         
         with col2:
-            data['zip_code'] = st.text_input("ZIP Code", value=data['zip_code'], max_chars=5)
+            data['zip_code'] = st.text_input(t("zip_code"), value=data['zip_code'], max_chars=5)
             
-            st.markdown("**Transportation**")
+            st.markdown(f"**{t('transportation')}**")
             col_car, col_bus = st.columns(2)
             with col_car:
-                data['has_vehicle'] = st.checkbox("Car Access", value=data['has_vehicle'])
+                data['has_vehicle'] = st.checkbox(t("car_access"), value=data['has_vehicle'])
             with col_bus:
-                data['has_transit'] = st.checkbox("Public Transit", value=data['has_transit'])
+                data['has_transit'] = st.checkbox(t("public_transit"), value=data['has_transit'])
             
-            data['trips_per_week'] = st.slider("Grocery Trips/Week", 1, 7, data['trips_per_week'])
+            data['trips_per_week'] = st.slider(t("grocery_trips_week"), 1, 7, data['trips_per_week'])
         
         st.markdown("---")
         
         col_back, col_next = st.columns([1, 1])
         with col_next:
-            if st.button("Next →", type="primary", use_container_width=True):
+            if st.button(f"{t('next')} →", type="primary", use_container_width=True):
                 st.session_state.wizard_step = 2
                 st.rerun()
     
     elif step == 2:
         # Step 2: Health Concerns
-        st.markdown("## 🩺 Health Information")
-        st.caption("Help us understand your health needs (all optional).")
+        st.markdown(f"## 🩺 {t('health_information')}")
+        st.caption(t("health_needs_optional"))
         
         # Initialize multiselect keys from wizard_data if not already set
         if 'wizard_symptoms' not in st.session_state:
@@ -1035,28 +1368,28 @@ def render_wizard():
         
         # Use key parameter for proper Streamlit state management (no default when using key)
         current_symptoms = st.multiselect(
-            "Current Symptoms",
-            ["Fatigue", "Brain Fog", "Joint Pain", "Anxiety", "Poor Sleep", "Digestive Issues", 
-             "Weak Immunity", "Headaches", "Skin Problems", "Muscle Cramps", "Mood Swings",
-             "Hair Loss", "Cold Hands/Feet", "Dizziness", "Shortness of Breath"],
+            t("current_symptoms"),
+            [t("Fatigue"), t("Brain Fog"), t("Joint Pain"), t("Anxiety"), t("Poor Sleep"), t("Digestive Issues"), 
+             t("Weak Immunity"), t("Headaches"), t("Skin Problems"), t("Muscle Cramps"), t("Mood Swings"),
+             t("Hair Loss"), t("Cold Hands/Feet"), t("Dizziness"), t("Shortness of Breath")],
             key="wizard_symptoms",
             help="Select symptoms you experience regularly"
         )
         data['current_symptoms'] = current_symptoms
         
         family_history = st.multiselect(
-            "Family Health History",
-            ["Diabetes", "Heart Disease", "Hypertension", "Cancer", "Obesity", "Thyroid Issues", 
-             "Alzheimer's/Dementia", "Autoimmune Disease", "Mental Health Conditions"],
+            t("family_health_history"),
+            [t("Diabetes"), t("Heart Disease"), t("Hypertension"), t("Cancer"), t("Obesity"), t("Thyroid Issues"), 
+             t("Alzheimer's/Dementia"), t("Autoimmune Disease"), t("Mental Health Conditions")],
             key="wizard_family_history",
             help="Conditions in parents, grandparents, siblings"
         )
         data['family_history'] = family_history
         
         allergies = st.multiselect(
-            "Food Allergies & Intolerances",
-            ["Gluten", "Dairy", "Shellfish", "Tree Nuts", "Peanuts", "Eggs", "Soy", "Fish", "Corn",
-             "Sesame", "Nightshades", "Sulfites", "Histamine", "FODMAPs", "Latex-Fruit"],
+            t("food_allergies"),
+            [t("Gluten"), t("Dairy"), t("Shellfish"), t("Tree Nuts"), t("Peanuts"), t("Eggs"), t("Soy"), t("Fish"), t("Corn"),
+             t("Sesame"), t("Nightshades"), t("Sulfites"), t("Histamine"), t("FODMAPs"), t("Latex-Fruit")],
             key="wizard_allergies"
         )
         data['allergies'] = allergies
@@ -1065,31 +1398,31 @@ def render_wizard():
         
         col_back, col_skip, col_next = st.columns([1, 1, 1])
         with col_back:
-            if st.button("← Back", use_container_width=True):
+            if st.button(f"← {t('back')}", use_container_width=True):
                 st.session_state.wizard_step = 1
                 st.rerun()
         with col_skip:
-            if st.button("Skip to Results", use_container_width=True):
+            if st.button(t("skip_to_results"), use_container_width=True):
                 user = build_user_from_wizard()
                 st.session_state.user_context = user
                 run_analysis()
                 st.rerun()
         with col_next:
-            if st.button("Next →", type="primary", use_container_width=True):
+            if st.button(f"{t('next')} →", type="primary", use_container_width=True):
                 st.session_state.wizard_step = 3
                 st.rerun()
     
     elif step == 3:
         # Step 3: Lab Results (Optional)
-        st.markdown("## 🧬 Lab Results (Optional)")
-        st.caption("If you have recent bloodwork, entering it makes recommendations more precise.")
+        st.markdown(f"## 🧬 {t('lab_results_optional')}")
+        st.caption(t("lab_results_help"))
         
-        st.info("💡 **No lab results?** That's okay! Click 'Generate My Plan' to skip this step.")
+        st.info(f"💡 **{t('no_lab_results')}**")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("**Vitamin Levels**")
+            st.markdown(f"**{t('vitamin_levels')}**")
             data['b12_level'] = st.number_input("Vitamin B12 (pg/mL)", 0, 2000, data['b12_level'], 
                                                  help="Normal: 300-900")
             data['vit_d_level'] = st.number_input("Vitamin D (ng/mL)", 0, 150, data['vit_d_level'], 
@@ -1098,7 +1431,7 @@ def render_wizard():
                                                   help="Normal: 60-170")
         
         with col2:
-            st.markdown("**Health Markers**")
+            st.markdown(f"**{t('health_markers')}**")
             data['crp_level'] = st.number_input("CRP (mg/L)", 0.0, 50.0, data['crp_level'], 
                                                  help="Optimal: <1.0")
             data['homocysteine'] = st.number_input("Homocysteine (umol/L)", 0.0, 50.0, data['homocysteine'], 
@@ -1106,7 +1439,7 @@ def render_wizard():
             data['glucose'] = st.number_input("Fasting Glucose (mg/dL)", 0, 400, data['glucose'], 
                                                help="Normal: <100")
         
-        with st.expander("Genetic Markers (from special tests)"):
+        with st.expander(t("genetic_markers")):
             col_g1, col_g2 = st.columns(2)
             with col_g1:
                 data['mthfr_variant'] = st.selectbox("MTHFR Variant", 
@@ -1121,11 +1454,11 @@ def render_wizard():
         
         col_back, col_generate = st.columns([1, 2])
         with col_back:
-            if st.button("← Back", use_container_width=True):
+            if st.button(f"← {t('back')}", use_container_width=True):
                 st.session_state.wizard_step = 2
                 st.rerun()
         with col_generate:
-            if st.button("✨ Generate My Plan", type="primary", use_container_width=True):
+            if st.button(f"✨ {t('generate_my_plan')}", type="primary", use_container_width=True):
                 user = build_user_from_wizard()
                 st.session_state.user_context = user
                 run_analysis()
@@ -1136,23 +1469,23 @@ def render_welcome():
     """Render welcome screen with wizard."""
     # Clean header
     st.markdown('<h1 class="main-header">🥕 EatWell</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Personalized nutrition planning for everyone.</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="sub-header">{t("personalized_nutrition_planning")}</p>', unsafe_allow_html=True)
     
     # Feature highlights (compact)
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown("💰 **Budget-Aware** — Works with SNAP/WIC")
+        st.markdown(f"💰 **{t('budget_aware')}** — {t('works_with_snap_wic')}")
     with col2:
-        st.markdown("🧬 **Science-Based** — Personalized to you")
+        st.markdown(f"🧬 **{t('science_based')}** — {t('personalized_to_you')}")
     with col3:
-        st.markdown("📍 **Location-Smart** — Finds nearby stores")
+        st.markdown(f"📍 **{t('location_smart')}** — {t('finds_nearby_stores')}")
     
     st.markdown("---")
     
     # Quick start options
     col_demo, col_spacer = st.columns([1, 2])
     with col_demo:
-        if st.button("🚀 Quick Demo (Load Sample Data)", use_container_width=True):
+        if st.button(f"🚀 {t('quick_demo')}", use_container_width=True):
             user = create_sample_user()
             st.session_state.user_context = user
             run_analysis()
@@ -1165,7 +1498,7 @@ def render_welcome():
     
     # Compact disclaimer at bottom
     st.markdown("---")
-    st.caption("⚠️ This app provides nutrition education, not medical advice. Consult a healthcare provider for medical decisions.")
+    st.caption(f"⚠️ {t('disclaimer')}")
 
 
 def render_dashboard():
@@ -1176,37 +1509,37 @@ def render_dashboard():
     shopping = st.session_state.shopping_list
     
     # Header
-    st.markdown(f'<h1 class="main-header">🥕 Welcome back, {user.name}!</h1>', unsafe_allow_html=True)
-    st.markdown(f'<p class="sub-header">Here\'s your personalized EatWell nutrition plan.</p>', unsafe_allow_html=True)
+    st.markdown(f'<h1 class="main-header">🥕 {t("welcome_back")}, {user.name}!</h1>', unsafe_allow_html=True)
+    st.markdown(f'<p class="sub-header">{t("heres_your_plan")}</p>', unsafe_allow_html=True)
     
     # Quick Stats
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         st.metric(
-            "Weekly Budget",
+            t("weekly_budget"),
             f"${user.financials.weekly_budget:.0f}",
-            delta=f"${user.financials.weekly_budget - shopping.total_with_transport:.0f} left" if shopping.total_with_transport <= user.financials.weekly_budget else "Over budget"
+            delta=f"${user.financials.weekly_budget - shopping.total_with_transport:.0f} {t('left')}" if shopping.total_with_transport <= user.financials.weekly_budget else t("over_budget")
         )
     
     with col2:
         st.metric(
-            "Priority Nutrients",
+            t("priority_nutrients"),
             len(nutrients.needs),
-            delta=f"{len([n for n in nutrients.needs if n.priority <= 2])} critical"
+            delta=f"{len([n for n in nutrients.needs if n.priority <= 2])} {t('critical')}"
         )
     
     with col3:
         st.metric(
-            "Nearby Stores",
+            t("nearby_stores"),
             len(resources.accessible_stores),
-            delta=f"{len(resources.food_pantries)} pantries"
+            delta=f"{len(resources.food_pantries)} {t('pantries')}"
         )
     
     with col4:
-        transport_note = f"+${shopping.estimated_transport_cost:.0f} transport" if shopping.estimated_transport_cost > 0 else "no transport cost"
+        transport_note = f"+${shopping.estimated_transport_cost:.0f} {t('transport')}" if shopping.estimated_transport_cost > 0 else t("no_transport_cost")
         st.metric(
-            "Total Cost",
+            t("total_cost"),
             f"${shopping.total_with_transport:.0f}",
             delta=transport_note
         )
@@ -1215,10 +1548,10 @@ def render_dashboard():
     
     # 4 tabs for cleaner navigation
     tab1, tab2, tab3, tab4 = st.tabs([
-        "🛒 My Plan", 
-        "📍 Where to Shop",
-        "🔬 Why This?", 
-        "💬 Help"
+        f"🛒 {t('my_plan')}", 
+        f"📍 {t('where_to_shop')}",
+        f"🔬 {t('why_this')}", 
+        f"💬 {t('help')}"
     ])
     
     with tab1:
@@ -1237,16 +1570,16 @@ def render_dashboard():
         # Learn + AI chat combined
         col_learn, col_chat = st.columns([1, 1])
         with col_learn:
-            st.markdown("### 📚 Learn")
+            st.markdown(f"### 📚 {t('learn')}")
             render_learn_section(user, nutrients)
         with col_chat:
-            st.markdown("### 🤖 Ask AI")
+            st.markdown(f"### 🤖 {t('ask_ai')}")
             render_chatbot()
 
 
 def render_shopping_list(shopping: ShoppingList, user: UserContext, nutrients: NutrientPriorityList):
     """Render the shopping list tab."""
-    st.markdown("## 🛒 Your Curated Shopping List")
+    st.markdown(f"## 🛒 {t('your_shopping_list')}")
     
     # Budget bar - now includes transportation
     budget = user.financials.weekly_budget
@@ -1255,49 +1588,49 @@ def render_shopping_list(shopping: ShoppingList, user: UserContext, nutrients: N
     total_cost = shopping.total_with_transport
     pct = min(100, (total_cost / budget) * 100) if budget > 0 else 0
     
-    st.progress(pct / 100, text=f"Total Budget Used: ${total_cost:.2f} / ${budget:.2f}")
+    st.progress(pct / 100, text=f"{t('total_budget_used')}: ${total_cost:.2f} / ${budget:.2f}")
     
     # Cost breakdown
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("🛒 Food Cost", f"${food_cost:.2f}")
+        st.metric(f"🛒 {t('food_cost')}", f"${food_cost:.2f}")
     with col2:
-        st.metric("🚌 Transport Cost", f"${transport_cost:.2f}" if transport_cost > 0 else "Free")
+        st.metric(f"🚌 {t('transport_cost')}", f"${transport_cost:.2f}" if transport_cost > 0 else t("free"))
     with col3:
         remaining = budget - total_cost
-        st.metric("💰 Remaining", f"${remaining:.2f}", delta=f"{'Over' if remaining < 0 else ''}")
+        st.metric(f"💰 {t('remaining')}", f"${remaining:.2f}", delta=f"{t('over') if remaining < 0 else ''}")
     
     # Transport cost breakdown by store
     if shopping.transport_details and any(cost > 0 for cost in shopping.transport_details.values()):
-        with st.expander("🚌 Transportation Cost Breakdown"):
+        with st.expander(f"🚌 {t('transport_breakdown')}"):
             for store_name, cost in shopping.transport_details.items():
                 if cost > 0:
-                    st.markdown(f"• **{store_name}**: ${cost:.2f} (round trip)")
-            st.caption("💡 Tip: Combine trips to save on transportation costs!")
+                    st.markdown(f"• **{store_name}**: ${cost:.2f} ({t('round_trip')})")
+            st.caption(f"💡 {t('tip_combine_trips')}")
     
     # Benefits badges
     badges = []
     if user.financials.snap_status:
-        badges.append("✓ SNAP Applied")
+        badges.append(f"✓ {t('snap_applied')}")
     if user.financials.wic_status:
-        badges.append("✓ WIC Applied")
+        badges.append(f"✓ {t('wic_applied')}")
     if badges:
         st.success(" | ".join(badges))
     
     # Food Pantry recommendations
     if shopping.pantry_items:
-        st.markdown("### 🆓 From Food Pantry (FREE)")
+        st.markdown(f"### 🆓 {t('from_food_pantry')}")
         for item in shopping.pantry_items:
             st.markdown(f"""
             <div class="store-card">
-                <span class="free-badge">FREE</span>
+                <span class="free-badge">{t('free').upper()}</span>
                 <strong>{item.food.name}</strong><br>
                 <small>📍 {item.suggested_store}</small>
             </div>
             """, unsafe_allow_html=True)
     
     # Main shopping list by priority
-    st.markdown("### 📋 Items to Purchase")
+    st.markdown(f"### 📋 {t('items_to_purchase')}")
     
     priority_items = {
         ShoppingPriority.CRITICAL: [],
@@ -1310,10 +1643,10 @@ def render_shopping_list(shopping: ShoppingList, user: UserContext, nutrients: N
         priority_items[item.priority].append(item)
     
     priority_config = {
-        ShoppingPriority.CRITICAL: ("🔴 Critical", "priority-critical"),
-        ShoppingPriority.HIGH: ("🟠 High Priority", "priority-high"),
-        ShoppingPriority.MODERATE: ("🟡 Moderate", "priority-moderate"),
-        ShoppingPriority.OPTIONAL: ("🟢 Optional", "priority-optional")
+        ShoppingPriority.CRITICAL: (f"🔴 {t('critical_priority')}", "priority-critical"),
+        ShoppingPriority.HIGH: (f"🟠 {t('high_priority')}", "priority-high"),
+        ShoppingPriority.MODERATE: (f"🟡 {t('moderate_priority')}", "priority-moderate"),
+        ShoppingPriority.OPTIONAL: (f"🟢 {t('optional_priority')}", "priority-optional")
     }
     
     for priority, items in priority_items.items():
@@ -1328,15 +1661,15 @@ def render_shopping_list(shopping: ShoppingList, user: UserContext, nutrients: N
                 st.markdown(f"""
                 <div class="{css_class}">
                     <strong>{item.food.name}</strong> — ${item.estimated_cost:.2f}{snap_badge}<br>
-                    <small>🎯 Nutrients: {nutrients_str}</small><br>
-                    <small>🏪 Suggested: {item.suggested_store or 'Any store'}</small>
+                    <small>🎯 {t('nutrients')}: {nutrients_str}</small><br>
+                    <small>🏪 {t('suggested')}: {item.suggested_store or t('any_store')}</small>
                 </div>
                 """, unsafe_allow_html=True)
 
 
 def render_nutrient_analysis(nutrients: NutrientPriorityList, user: UserContext):
     """Render the nutrient analysis tab."""
-    st.markdown("## 🔬 Your Nutrient Analysis")
+    st.markdown(f"## 🔬 {t('your_nutrient_analysis')}")
     
     # Warnings
     if nutrients.warnings:
@@ -1345,7 +1678,7 @@ def render_nutrient_analysis(nutrients: NutrientPriorityList, user: UserContext)
     
     # Lab results summary
     if user.lab_results:
-        st.markdown("### 🧬 Your Biomarkers")
+        st.markdown(f"### 🧬 {t('your_biomarkers')}")
         
         col1, col2, col3 = st.columns(3)
         
@@ -1375,32 +1708,32 @@ def render_nutrient_analysis(nutrients: NutrientPriorityList, user: UserContext)
     st.markdown("---")
     
     # Nutrient priorities
-    st.markdown("### 📊 Prioritized Nutrient Needs")
+    st.markdown(f"### 📊 {t('prioritized_nutrient_needs')}")
     
-    priority_labels = {1: "🔴 Critical", 2: "🟠 High", 3: "🟡 Moderate", 4: "🟢 Preventive", 5: "⚪ Supportive"}
+    priority_labels = {1: f"🔴 {t('critical_priority')}", 2: f"🟠 {t('high_priority')}", 3: f"🟡 {t('moderate_priority')}", 4: "🟢 Preventive", 5: "⚪ Supportive"}
     
     for need in nutrients.needs:
         with st.expander(f"{priority_labels.get(need.priority, '⚪')} **{need.nutrient}**"):
-            st.markdown(f"**Why this matters for you:**")
+            st.markdown(f"**{t('why_matters_for_you')}**")
             st.write(need.reason)
             
             if need.related_markers:
-                st.markdown(f"**Related markers:** {', '.join(need.related_markers[:4])}")
+                st.markdown(f"**{t('related_markers')}:** {', '.join(need.related_markers[:4])}")
             
             if need.food_sources:
-                st.markdown(f"**Best food sources:**")
+                st.markdown(f"**{t('best_food_sources')}:**")
                 st.write(", ".join(need.food_sources[:6]))
 
 
 def render_store_finder(resources: ResourceMap, user: UserContext):
     """Render the store finder tab with map visualization."""
-    st.markdown("## 📍 Nearby Food Resources")
+    st.markdown(f"## 📍 {t('nearby_food_resources')}")
     
-    st.info(f"📍 Showing results for ZIP: **{resources.user_zip}** | 🚗 Mobility: **{user.logistics.mobility_level.upper()}**")
+    st.info(f"📍 {t('showing_results_for')}: **{resources.user_zip}** | 🚗 {t('mobility')}: **{user.logistics.mobility_level.upper()}**")
     
     # Map visualization
     if FOLIUM_AVAILABLE and resources.accessible_stores:
-        st.markdown("### 🗺️ Store Locations Map")
+        st.markdown(f"### 🗺️ {t('store_locations_map')}")
         
         # Get valid stores for markers
         valid_stores = [tf for tf in resources.accessible_stores 
@@ -1414,20 +1747,20 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
             user_lat, user_lon = None, None
             if GEOLOCATION_AVAILABLE:
                 use_current_location = st.checkbox(
-                    "📍 Use my current location", 
+                    f"📍 {t('use_current_location')}", 
                     value=False,
-                    help="Your location is used only for the map and is NOT saved or stored."
+                    help=t("location_not_saved")
                 )
                 
                 if use_current_location:
-                    with st.spinner("Getting your location..."):
+                    with st.spinner(f"{t('getting_location')}"):
                         location = get_geolocation()
                         if location and 'coords' in location:
                             user_lat = location['coords']['latitude']
                             user_lon = location['coords']['longitude']
-                            st.success("✅ Using your current location (not saved)")
+                            st.success(f"✅ {t('using_current_location')}")
                         else:
-                            st.warning("Could not get location. Make sure location permissions are enabled.")
+                            st.warning(t("could_not_get_location"))
             
             # Create the map
             m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
@@ -1506,7 +1839,7 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
     
     # Food Pantries
     if resources.food_pantries:
-        st.markdown("### 🆓 Food Pantries (FREE)")
+        st.markdown(f"### 🆓 {t('food_pantries_free')}")
         
         for tf in resources.food_pantries:
             col1, col2 = st.columns([3, 1])
@@ -1514,7 +1847,7 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
                 transport_note = f" | 🚌 ${tf.transit_cost:.2f} transit" if tf.transit_cost > 0 else ""
                 st.markdown(f"""
                 <div class="store-card">
-                    <span class="free-badge">FREE</span>
+                    <span class="free-badge">{t('free').upper()}</span>
                     <strong>{tf.store.name}</strong><br>
                     📍 {tf.store.distance_miles} miles ({tf.travel_method}, ~{tf.estimated_time_minutes} min){transport_note}<br>
                     🕐 {tf.store.hours}<br>
@@ -1522,13 +1855,13 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
                 </div>
                 """, unsafe_allow_html=True)
             with col2:
-                st.metric("Score", f"{tf.accessibility_score:.0%}")
+                st.metric(t("score"), f"{tf.accessibility_score:.0%}")
     
     st.markdown("---")
     
     # SNAP Stores
     if user.financials.snap_status and resources.snap_stores:
-        st.markdown("### 🏪 SNAP-Authorized Stores")
+        st.markdown(f"### 🏪 {t('snap_authorized_stores')}")
         
         for tf in resources.snap_stores[:5]:
             if tf.store.store_type != StoreType.FOOD_PANTRY:
@@ -1547,24 +1880,24 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
                     </div>
                     """, unsafe_allow_html=True)
                 with col2:
-                    st.metric("Score", f"{tf.accessibility_score:.0%}")
+                    st.metric(t("score"), f"{tf.accessibility_score:.0%}")
     
     st.markdown("---")
     
     # All stores with transportation costs
-    st.markdown("### 🗺️ All Accessible Stores")
+    st.markdown(f"### 🗺️ {t('all_accessible_stores')}")
     
     store_data = []
     for tf in resources.accessible_stores[:8]:
         store_data.append({
-            "Store": tf.store.name,
-            "Type": tf.store.store_type.value.replace("_", " ").title(),
-            "Distance": f"{tf.store.distance_miles} mi",
-            "Travel": f"{tf.travel_method} ({tf.estimated_time_minutes} min)",
-            "Transport $": f"${tf.transit_cost:.2f}" if tf.transit_cost > 0 else "Free",
-            "Price": "FREE" if tf.store.store_type == StoreType.FOOD_PANTRY else "💲" * tf.store.price_tier,
+            t("store"): tf.store.name,
+            t("type"): tf.store.store_type.value.replace("_", " ").title(),
+            t("distance"): f"{tf.store.distance_miles} mi",
+            t("travel"): f"{tf.travel_method} ({tf.estimated_time_minutes} min)",
+            f"{t('transport')} $": f"${tf.transit_cost:.2f}" if tf.transit_cost > 0 else t("free"),
+            t("price"): t("free").upper() if tf.store.store_type == StoreType.FOOD_PANTRY else "💲" * tf.store.price_tier,
             "SNAP": "✓" if tf.store.snap_accepted else "—",
-            "Score": f"{tf.accessibility_score:.0%}"
+            t("score"): f"{tf.accessibility_score:.0%}"
         })
     
     st.dataframe(store_data, use_container_width=True, hide_index=True)
@@ -1572,18 +1905,18 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
 
 def render_why_section(shopping: ShoppingList, nutrients: NutrientPriorityList, user: UserContext):
     """Render the interactive 'Why' explanation section."""
-    st.markdown("## ❓ Ask Why")
-    st.markdown("*Understand the connection between your health markers and food recommendations.*")
+    st.markdown(f"## ❓ {t('ask_why')}")
+    st.markdown(f"*{t('understand_connection')}*")
     
     # Select an item to explain
     item_names = [item.food.name for item in shopping.items]
     
     if not item_names:
-        st.warning("Generate a shopping list first to see explanations.")
+        st.warning(t("generate_list_first"))
         return
     
     selected_item = st.selectbox(
-        "Select an item to understand why it was recommended:",
+        t("select_item_explain"),
         item_names,
         index=0
     )
@@ -1603,14 +1936,14 @@ def render_why_section(shopping: ShoppingList, nutrients: NutrientPriorityList, 
         
         with col1:
             st.markdown(f"### 📦 {selected.food.name}")
-            st.metric("Price", f"${selected.estimated_cost:.2f}")
-            st.metric("Priority", selected.priority.name)
+            st.metric(t("price"), f"${selected.estimated_cost:.2f}")
+            st.metric(t("priority_level"), selected.priority.name)
             
             if selected.food.snap_eligible:
                 st.success("✓ SNAP Eligible")
         
         with col2:
-            st.markdown("### 🔬 Biological Connection")
+            st.markdown(f"### 🔬 {t('biological_connection')}")
             
             for nutrient in selected.nutrients_addressed:
                 # Find the matching nutrient need
@@ -1626,8 +1959,8 @@ def render_why_section(shopping: ShoppingList, nutrients: NutrientPriorityList, 
                         break
         
         # Full nutrient profile
-        st.markdown("### 🥗 Nutrient Profile")
-        st.write(f"**This food provides:** {', '.join(selected.food.nutrients_provided)}")
+        st.markdown(f"### 🥗 {t('nutrient_profile')}")
+        st.write(f"**{t('this_food_provides')}:** {', '.join(selected.food.nutrients_provided)}")
         
         # Symptoms connection
         if user.medical.current_symptoms:
@@ -1639,25 +1972,25 @@ def render_why_section(shopping: ShoppingList, nutrients: NutrientPriorityList, 
                         matching.append(symptom)
             
             if matching:
-                st.info(f"🩺 **Connected to your symptoms:** {', '.join(set(matching))}")
+                st.info(f"🩺 **{t('connected_to_symptoms')}:** {', '.join(set(matching))}")
     
     st.markdown("---")
     
     # Quick nutrient lookup
-    st.markdown("### 🔍 Nutrient Deep Dive")
+    st.markdown(f"### 🔍 {t('nutrient_deep_dive')}")
     
     nutrient_names = [need.nutrient for need in nutrients.needs]
-    selected_nutrient = st.selectbox("Select a nutrient to learn more:", nutrient_names)
+    selected_nutrient = st.selectbox(t("select_nutrient_learn"), nutrient_names)
     
     for need in nutrients.needs:
         if need.nutrient == selected_nutrient:
             st.markdown(f"""
             <div class="explanation-box">
                 <h4>{need.nutrient}</h4>
-                <p><strong>Priority Level:</strong> {need.priority}</p>
-                <p><strong>Why it matters:</strong> {need.reason}</p>
-                <p><strong>Related markers:</strong> {', '.join(need.related_markers)}</p>
-                <p><strong>Best food sources:</strong> {', '.join(need.food_sources[:6])}</p>
+                <p><strong>{t('priority_level')}:</strong> {need.priority}</p>
+                <p><strong>{t('why_it_matters')}:</strong> {need.reason}</p>
+                <p><strong>{t('related_markers')}:</strong> {', '.join(need.related_markers)}</p>
+                <p><strong>{t('best_food_sources')}:</strong> {', '.join(need.food_sources[:6])}</p>
             </div>
             """, unsafe_allow_html=True)
             break
@@ -1665,15 +1998,15 @@ def render_why_section(shopping: ShoppingList, nutrients: NutrientPriorityList, 
 
 def render_learn_section(user: UserContext, nutrients: NutrientPriorityList):
     """Render the health education/literacy section."""
-    st.markdown("## 📚 Learn: Understanding Your Health")
-    st.markdown("*We believe everyone deserves to understand their health. Here's what these terms mean in plain language.*")
+    st.markdown(f"## 📚 {t('learn')}: {t('understanding_your_health')}")
+    st.markdown(f"*{t('health_literacy_intro')}*")
     
     # Personalized learning based on user's conditions
     st.markdown("---")
     
     # Section 1: Terms relevant to YOUR results
-    st.markdown("### 🎯 Terms Relevant to You")
-    st.caption("Based on your health profile, here are the most important concepts to understand:")
+    st.markdown(f"### 🎯 {t('terms_relevant_to_you')}")
+    st.caption(t("based_on_profile"))
     
     relevant_terms = []
     
@@ -1717,19 +2050,19 @@ def render_learn_section(user: UserContext, nutrients: NutrientPriorityList):
                 with st.expander(f"📖 **{term}** — {info['simple']}"):
                     st.markdown(f"""
                     <div class="edu-card">
-                        <h4>🤔 What is it?</h4>
+                        <h4>🤔 {t('what_is_it')}</h4>
                         <p>{info['detail']}</p>
                     </div>
                     """, unsafe_allow_html=True)
                     
                     st.markdown(f"""
                     <div class="simple-explain">
-                        <strong>💡 Why it matters for you:</strong><br>
+                        <strong>💡 {t('why_matters_for_you_learn')}</strong><br>
                         {info['why_matters']}
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    st.success(f"🥗 **Foods that help:** {info['food_connection']}")
+                    st.success(f"🥗 **{t('foods_that_help')}:** {info['food_connection']}")
     else:
         st.info("Fill out the sidebar form to see personalized health education!")
     
@@ -1737,8 +2070,8 @@ def render_learn_section(user: UserContext, nutrients: NutrientPriorityList):
     
     # Section 2: Understanding your symptoms
     if user.medical.current_symptoms:
-        st.markdown("### 🩺 Understanding Your Symptoms")
-        st.caption("Here's what your symptoms might mean and how food can help:")
+        st.markdown(f"### 🩺 {t('understanding_symptoms')}")
+        st.caption(t("symptoms_explanation"))
         
         for symptom in user.medical.current_symptoms[:4]:
             symptom_key = symptom.lower().replace(" ", "_")
@@ -1747,18 +2080,18 @@ def render_learn_section(user: UserContext, nutrients: NutrientPriorityList):
                 with st.expander(f"💭 **{symptom.replace('_', ' ').title()}**"):
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.markdown(f"**What it means:** {info['what_it_means']}")
-                        st.markdown(f"**Common causes:** {info['common_causes']}")
+                        st.markdown(f"**{t('what_it_means')}:** {info['what_it_means']}")
+                        st.markdown(f"**{t('common_causes')}:** {info['common_causes']}")
                     with col2:
-                        st.success(f"**🥗 Foods that can help:**\n\n{info['food_help']}")
+                        st.success(f"**🥗 {t('foods_can_help')}:**\n\n{info['food_help']}")
     
     st.markdown("---")
     
     # Section 3: Full glossary
-    st.markdown("### 📖 Health Glossary")
-    st.caption("Browse all health terms explained in plain language")
+    st.markdown(f"### 📖 {t('health_glossary')}")
+    st.caption(t("browse_health_terms"))
     
-    search_term = st.text_input("🔍 Search for a term:", placeholder="e.g., B12, inflammation, SNAP")
+    search_term = st.text_input(f"🔍 {t('search_term')}", placeholder=t("eg_search"))
     
     # Filter glossary
     filtered_terms = HEALTH_GLOSSARY
@@ -1779,20 +2112,20 @@ def render_learn_section(user: UserContext, nutrients: NutrientPriorityList):
                 
                 with st.expander("Learn more"):
                     st.write(info['detail'])
-                    st.caption(f"🥗 Foods: {info['food_connection']}")
+                    st.caption(f"🥗 {t('foods_that_help')}: {info['food_connection']}")
     else:
-        st.warning(f"No terms found matching '{search_term}'")
+        st.warning(f"{t('no_terms_found')} '{search_term}'")
     
     st.markdown("---")
     
     # Section 4: Quick tips
-    st.markdown("### 💡 Quick Tips for Healthy Eating on a Budget")
+    st.markdown(f"### 💡 {t('quick_tips')}")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("""
-        **🛒 Shopping Smart:**
+        st.markdown(f"""
+        **🛒 {t('shopping_smart')}**
         - Buy frozen vegetables — just as nutritious, last longer, often cheaper
         - Canned beans/lentils are excellent protein sources
         - Store brands are usually the same quality as name brands
@@ -1800,24 +2133,24 @@ def render_learn_section(user: UserContext, nutrients: NutrientPriorityList):
         - Buy in-season produce for best prices
         """)
         
-        st.markdown("""
-        **🏪 Using Food Assistance:**
+        st.markdown(f"""
+        **🏪 {t('using_food_assistance')}**
         - SNAP can be used at most farmers markets (often doubled!)
         - Food pantries are there to help — no shame in using them
         - WIC provides nutritious staples for families
         """)
     
     with col2:
-        st.markdown("""
-        **🍳 Cooking Tips:**
+        st.markdown(f"""
+        **🍳 {t('cooking_tips')}**
         - Batch cook on weekends to save time and money
         - One-pot meals (soups, stews) stretch ingredients further
         - Eggs are cheap, versatile, and nutritious
         - Beans + rice = complete protein for pennies
         """)
         
-        st.markdown("""
-        **🧠 Reading Your Body:**
+        st.markdown(f"""
+        **🧠 {t('reading_your_body')}**
         - Fatigue often = need more iron or B vitamins
         - Joint pain often = need more omega-3s and anti-inflammatory foods
         - Getting sick a lot = might need more vitamin D and zinc
@@ -1826,7 +2159,7 @@ def render_learn_section(user: UserContext, nutrients: NutrientPriorityList):
     
     # Disclaimer
     st.markdown("---")
-    st.caption("⚠️ **Disclaimer:** This app provides general nutrition information for educational purposes. It is not medical advice. Always consult with a healthcare provider for personalized medical guidance.")
+    st.caption(f"⚠️ **Disclaimer:** {t('full_disclaimer')}")
 
 
 def main():
