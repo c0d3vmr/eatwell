@@ -433,6 +433,32 @@ def init_session_state():
     if 'openai_api_key' not in st.session_state:
         # Check environment variable first
         st.session_state.openai_api_key = os.environ.get('OPENAI_API_KEY', '')
+    
+    # Wizard state
+    if 'wizard_step' not in st.session_state:
+        st.session_state.wizard_step = 1
+    if 'wizard_data' not in st.session_state:
+        st.session_state.wizard_data = {
+            'name': '',
+            'weekly_budget': 75,
+            'snap_status': False,
+            'wic_status': False,
+            'zip_code': '77001',
+            'has_vehicle': False,
+            'has_transit': True,
+            'trips_per_week': 2,
+            'family_history': [],
+            'current_symptoms': [],
+            'allergies': [],
+            'mthfr_variant': 'Not Tested',
+            'comt_variant': 'Not Tested',
+            'b12_level': 0,
+            'vit_d_level': 0,
+            'iron_level': 0,
+            'crp_level': 0.0,
+            'homocysteine': 0.0,
+            'glucose': 0
+        }
 
 
 # =============================================================================
@@ -794,204 +820,89 @@ def render_chatbot():
 
 
 def render_sidebar():
-    """Render the sidebar with user input forms."""
+    """Render a minimal sidebar."""
     with st.sidebar:
         st.markdown('<h2 style="color: #4f7e52; margin-bottom: 0.5rem;">🥕 EatWell</h2>', unsafe_allow_html=True)
         st.caption("Personalized Nutrition")
         st.markdown("---")
         
-        st.markdown("##### 📋 Your Information")
-        
-        # Quick demo option
-        if st.button("🚀 Load Demo Data", use_container_width=True):
-            user = create_sample_user()
-            st.session_state.user_context = user
-            run_analysis()
-            st.rerun()
-        
-        st.markdown("---")
-        
-        # User name
-        name = st.text_input("Your Name", value="", placeholder="Enter your name")
-        
-        # Financial Information
-        st.markdown("##### 💰 Financial")
-        weekly_budget = st.slider("Weekly Grocery Budget ($)", 20, 300, 75, step=5)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            snap_status = st.checkbox("SNAP Benefits")
-        with col2:
-            wic_status = st.checkbox("WIC Benefits")
-        
-        # Logistics
-        st.markdown("##### 🚗 Location & Transport")
-        zip_code = st.text_input("ZIP Code", value="30312", max_chars=5)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            has_vehicle = st.checkbox("Vehicle Access")
-        with col2:
-            has_transit = st.checkbox("Public Transit")
-        
-        trips_per_week = st.slider("Grocery Trips/Week", 1, 7, 2)
-        
-        # Medical History
-        st.markdown("##### 🩺 Health Information")
-        st.caption("ℹ️ Helps us recommend foods for YOUR body")
-        
-        # Family History
-        family_history = st.multiselect(
-            "Family Health History",
-            ["Diabetes", "Heart Disease", "Hypertension", "Cancer", "Obesity", "Thyroid Issues", 
-             "Alzheimer's/Dementia", "Autoimmune Disease", "Mental Health Conditions"],
-            default=[],
-            help="Select conditions that run in your family (parents, grandparents, siblings)"
-        )
-        
-        # Current Symptoms
-        current_symptoms = st.multiselect(
-            "Current Symptoms",
-            ["Fatigue", "Brain Fog", "Joint Pain", "Anxiety", "Poor Sleep", "Digestive Issues", 
-             "Weak Immunity", "Headaches", "Skin Problems", "Muscle Cramps", "Mood Swings",
-             "Hair Loss", "Cold Hands/Feet", "Dizziness", "Shortness of Breath"],
-            default=[],
-            help="Select symptoms you currently experience regularly"
-        )
-        
-        # Allergies
-        allergies = st.multiselect(
-            "Food Allergies & Intolerances",
-            ["Gluten", "Dairy", "Shellfish", "Tree Nuts", "Peanuts", "Eggs", "Soy", "Fish", "Corn",
-             "Sesame", "Nightshades", "Sulfites", "Histamine", "FODMAPs", "Latex-Fruit"],
-            default=[],
-            help="Select foods that cause you allergic reactions or digestive problems"
-        )
-        
-        # Lab Results (Expandable) with educational content
-        with st.expander("🧬 Lab Results (Optional) - Click to learn more!"):
-            st.info("💡 **Don't have lab results?** That's okay! We can still help based on your symptoms and family history. But if you have recent bloodwork, entering it here makes our recommendations more precise.")
+        if st.session_state.analysis_complete:
+            # Minimal sidebar after analysis is complete
+            user = st.session_state.user_context
             
-            st.markdown("##### 🧬 Genetic Markers")
-            st.caption("These come from special genetic tests, not regular bloodwork")
+            st.markdown(f"**👤 {user.name}**")
+            st.caption(f"📍 {user.logistics.zip_code}")
+            st.caption(f"💰 ${user.financials.weekly_budget:.0f}/week budget")
             
-            mthfr_variant = st.selectbox(
-                "MTHFR Variant",
-                ["Not Tested", "Normal", "C677T", "A1298C", "Compound"],
-                index=0,
-                help="MTHFR affects how your body uses B vitamins. Ask your doctor about genetic testing if interested."
-            )
-            if mthfr_variant not in ["Not Tested", "Normal"]:
-                st.caption(f"ℹ️ {HEALTH_GLOSSARY['MTHFR']['simple']}")
+            if user.financials.snap_status:
+                st.caption("✅ SNAP")
+            if user.financials.wic_status:
+                st.caption("✅ WIC")
             
-            comt_variant = st.selectbox(
-                "COMT Variant",
-                ["Not Tested", "Normal", "Slow", "Fast"],
-                index=0,
-                help="COMT affects how you process stress hormones and caffeine."
+            st.markdown("---")
+            
+            # Quick budget adjustment
+            new_budget = st.slider(
+                "Adjust Budget ($)", 
+                20, 300, 
+                int(user.financials.weekly_budget), 
+                step=5,
+                help="Quickly adjust budget and regenerate plan"
             )
             
-            st.markdown("##### 💉 Vitamin Levels")
-            st.caption("These are from standard blood tests your doctor can order")
+            if new_budget != user.financials.weekly_budget:
+                if st.button("🔄 Update Plan", use_container_width=True):
+                    user.financials.weekly_budget = float(new_budget)
+                    run_analysis()
+                    st.rerun()
             
-            b12_level = st.number_input(
-                "Vitamin B12 (pg/mL)", 0, 2000, 0, 
-                help="Normal: 300-900. Below 500 may cause fatigue. Find this on your bloodwork as 'B12' or 'Cobalamin'."
-            )
-            vit_d_level = st.number_input(
-                "Vitamin D (ng/mL)", 0, 150, 0, 
-                help="Optimal: 30-60. Below 20 is deficient. Listed as '25-OH Vitamin D' or 'Vitamin D, 25-Hydroxy'."
-            )
-            iron_level = st.number_input(
-                "Iron (mcg/dL)", 0, 300, 0, 
-                help="Normal: 60-170. Low iron = fatigue. Listed as 'Serum Iron' on bloodwork."
-            )
+            st.markdown("---")
             
-            st.markdown("##### 🔥 Inflammation Markers")
-            st.caption("These show if your body is dealing with hidden inflammation")
+            # Start over option
+            if st.button("🔄 Start Over", use_container_width=True):
+                st.session_state.analysis_complete = False
+                st.session_state.user_context = None
+                st.session_state.wizard_step = 1
+                st.session_state.wizard_data = {
+                    'name': '',
+                    'weekly_budget': 75,
+                    'snap_status': False,
+                    'wic_status': False,
+                    'zip_code': '77001',
+                    'has_vehicle': False,
+                    'has_transit': True,
+                    'trips_per_week': 2,
+                    'family_history': [],
+                    'current_symptoms': [],
+                    'allergies': [],
+                    'mthfr_variant': 'Not Tested',
+                    'comt_variant': 'Not Tested',
+                    'b12_level': 0,
+                    'vit_d_level': 0,
+                    'iron_level': 0,
+                    'crp_level': 0.0,
+                    'homocysteine': 0.0,
+                    'glucose': 0
+                }
+                # Clear multiselect keys
+                for key in ['wizard_symptoms', 'wizard_family_history', 'wizard_allergies']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                st.rerun()
+        else:
+            # Before analysis: minimal sidebar, wizard is in main area
+            st.info("👉 Use the form in the main area to get started!")
             
-            crp_level = st.number_input(
-                "CRP (mg/L)", 0.0, 50.0, 0.0, 
-                help="Optimal: <1.0. High CRP = inflammation. Listed as 'C-Reactive Protein' or 'hs-CRP'."
-            )
-            if crp_level > 0:
-                st.caption(f"ℹ️ {HEALTH_GLOSSARY['CRP']['simple']}")
-                
-            homocysteine = st.number_input(
-                "Homocysteine (umol/L)", 0.0, 50.0, 0.0, 
-                help="Optimal: <10. High levels stress blood vessels. B vitamins help lower it."
-            )
-            
-            st.markdown("##### 🍬 Metabolic")
-            glucose = st.number_input(
-                "Fasting Glucose (mg/dL)", 0, 400, 0, 
-                help="Normal: <100. 100-125 = pre-diabetic. Listed as 'Glucose, Fasting' or 'FBS'."
-            )
-            if glucose > 0:
-                st.caption(f"ℹ️ {HEALTH_GLOSSARY['Fasting Glucose']['simple']}")
-        
-        st.markdown("---")
-        
-        # Generate button
-        if st.button("✨ Generate My Plan", type="primary", use_container_width=True):
-            if not name:
-                name = "User"
-            
-            # Build user context
-            financials = Financials(
-                weekly_budget=float(weekly_budget),
-                snap_status=snap_status,
-                wic_status=wic_status
-            )
-            
-            logistics = Logistics(
-                zip_code=zip_code,
-                has_vehicle=has_vehicle,
-                has_public_transit=has_transit,
-                grocery_trips_per_week=trips_per_week,
-                max_travel_distance_miles=15.0 if has_vehicle else (5.0 if has_transit else 2.0)
-            )
-            
-            # Combine preset selections with custom entries
-            all_family_history = list(family_history)
-            
-            all_symptoms = list(current_symptoms)
-            
-            all_allergies = list(allergies)
-            
-            medical = MedicalHistory(
-                family_history=[h.lower().replace(" ", "_") for h in all_family_history],
-                current_symptoms=[s.lower().replace(" ", "_") for s in all_symptoms],
-                known_allergies=[a.lower() for a in all_allergies]
-            )
-            
-            # Lab results
-            lab_results = None
-            if any([b12_level, vit_d_level, iron_level, crp_level, homocysteine, glucose, 
-                   mthfr_variant != "Not Tested", comt_variant != "Not Tested"]):
-                lab_results = LabResults(
-                    mthfr_variant=mthfr_variant if mthfr_variant not in ["Not Tested", "Normal"] else None,
-                    comt_variant=comt_variant.lower() if comt_variant not in ["Not Tested", "Normal"] else None,
-                    vitamin_b12_level=float(b12_level) if b12_level > 0 else None,
-                    vitamin_d_level=float(vit_d_level) if vit_d_level > 0 else None,
-                    iron_level=float(iron_level) if iron_level > 0 else None,
-                    crp_level=float(crp_level) if crp_level > 0 else None,
-                    homocysteine_level=float(homocysteine) if homocysteine > 0 else None,
-                    glucose_fasting=float(glucose) if glucose > 0 else None
+            # Optional: AI chatbot settings
+            with st.expander("🤖 AI Settings"):
+                api_key = st.text_input(
+                    "OpenAI API Key (optional)",
+                    type="password",
+                    value=st.session_state.openai_api_key,
+                    help="For enhanced AI chat responses"
                 )
-            
-            user = UserContext(
-                user_id=f"user_{name.lower().replace(' ', '_')}",
-                name=name,
-                financials=financials,
-                logistics=logistics,
-                medical=medical,
-                lab_results=lab_results
-            )
-            
-            st.session_state.user_context = user
-            run_analysis()
-            st.rerun()
+                if api_key != st.session_state.openai_api_key:
+                    st.session_state.openai_api_key = api_key
 
 
 def run_analysis():
@@ -1008,194 +919,253 @@ def run_analysis():
         st.session_state.analysis_complete = True
 
 
+def build_user_from_wizard():
+    """Build UserContext from wizard data."""
+    data = st.session_state.wizard_data
+    
+    name = data['name'] if data['name'] else "User"
+    
+    financials = Financials(
+        weekly_budget=float(data['weekly_budget']),
+        snap_status=data['snap_status'],
+        wic_status=data['wic_status']
+    )
+    
+    logistics = Logistics(
+        zip_code=data['zip_code'],
+        has_vehicle=data['has_vehicle'],
+        has_public_transit=data['has_transit'],
+        grocery_trips_per_week=data['trips_per_week'],
+        max_travel_distance_miles=15.0 if data['has_vehicle'] else (5.0 if data['has_transit'] else 2.0)
+    )
+    
+    medical = MedicalHistory(
+        family_history=[h.lower().replace(" ", "_") for h in data['family_history']],
+        current_symptoms=[s.lower().replace(" ", "_") for s in data['current_symptoms']],
+        known_allergies=[a.lower() for a in data['allergies']]
+    )
+    
+    lab_results = None
+    if any([data['b12_level'], data['vit_d_level'], data['iron_level'], data['crp_level'], 
+            data['homocysteine'], data['glucose'],
+            data['mthfr_variant'] != "Not Tested", data['comt_variant'] != "Not Tested"]):
+        lab_results = LabResults(
+            mthfr_variant=data['mthfr_variant'] if data['mthfr_variant'] not in ["Not Tested", "Normal"] else None,
+            comt_variant=data['comt_variant'].lower() if data['comt_variant'] not in ["Not Tested", "Normal"] else None,
+            vitamin_b12_level=float(data['b12_level']) if data['b12_level'] > 0 else None,
+            vitamin_d_level=float(data['vit_d_level']) if data['vit_d_level'] > 0 else None,
+            iron_level=float(data['iron_level']) if data['iron_level'] > 0 else None,
+            crp_level=float(data['crp_level']) if data['crp_level'] > 0 else None,
+            homocysteine_level=float(data['homocysteine']) if data['homocysteine'] > 0 else None,
+            glucose_fasting=float(data['glucose']) if data['glucose'] > 0 else None
+        )
+    
+    return UserContext(
+        user_id=f"user_{name.lower().replace(' ', '_')}",
+        name=name,
+        financials=financials,
+        logistics=logistics,
+        medical=medical,
+        lab_results=lab_results
+    )
+
+
+def render_wizard():
+    """Render the 3-step wizard for data entry."""
+    step = st.session_state.wizard_step
+    data = st.session_state.wizard_data
+    
+    # Progress indicator
+    st.markdown("### Step " + str(step) + " of 3")
+    progress = step / 3
+    st.progress(progress)
+    
+    st.markdown("---")
+    
+    if step == 1:
+        # Step 1: Budget & Location
+        st.markdown("## 💰 Budget & Location")
+        st.caption("Let's start with the basics to find affordable options near you.")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            data['name'] = st.text_input("Your Name (optional)", value=data['name'], placeholder="Enter your name")
+            data['weekly_budget'] = st.slider("Weekly Grocery Budget ($)", 20, 300, data['weekly_budget'], step=5)
+            
+            st.markdown("**Benefits**")
+            col_snap, col_wic = st.columns(2)
+            with col_snap:
+                data['snap_status'] = st.checkbox("SNAP", value=data['snap_status'])
+            with col_wic:
+                data['wic_status'] = st.checkbox("WIC", value=data['wic_status'])
+        
+        with col2:
+            data['zip_code'] = st.text_input("ZIP Code", value=data['zip_code'], max_chars=5)
+            
+            st.markdown("**Transportation**")
+            col_car, col_bus = st.columns(2)
+            with col_car:
+                data['has_vehicle'] = st.checkbox("Car Access", value=data['has_vehicle'])
+            with col_bus:
+                data['has_transit'] = st.checkbox("Public Transit", value=data['has_transit'])
+            
+            data['trips_per_week'] = st.slider("Grocery Trips/Week", 1, 7, data['trips_per_week'])
+        
+        st.markdown("---")
+        
+        col_back, col_next = st.columns([1, 1])
+        with col_next:
+            if st.button("Next →", type="primary", use_container_width=True):
+                st.session_state.wizard_step = 2
+                st.rerun()
+    
+    elif step == 2:
+        # Step 2: Health Concerns
+        st.markdown("## 🩺 Health Information")
+        st.caption("Help us understand your health needs (all optional).")
+        
+        # Initialize multiselect keys from wizard_data if not already set
+        if 'wizard_symptoms' not in st.session_state:
+            st.session_state.wizard_symptoms = data['current_symptoms']
+        if 'wizard_family_history' not in st.session_state:
+            st.session_state.wizard_family_history = data['family_history']
+        if 'wizard_allergies' not in st.session_state:
+            st.session_state.wizard_allergies = data['allergies']
+        
+        # Use key parameter for proper Streamlit state management (no default when using key)
+        current_symptoms = st.multiselect(
+            "Current Symptoms",
+            ["Fatigue", "Brain Fog", "Joint Pain", "Anxiety", "Poor Sleep", "Digestive Issues", 
+             "Weak Immunity", "Headaches", "Skin Problems", "Muscle Cramps", "Mood Swings",
+             "Hair Loss", "Cold Hands/Feet", "Dizziness", "Shortness of Breath"],
+            key="wizard_symptoms",
+            help="Select symptoms you experience regularly"
+        )
+        data['current_symptoms'] = current_symptoms
+        
+        family_history = st.multiselect(
+            "Family Health History",
+            ["Diabetes", "Heart Disease", "Hypertension", "Cancer", "Obesity", "Thyroid Issues", 
+             "Alzheimer's/Dementia", "Autoimmune Disease", "Mental Health Conditions"],
+            key="wizard_family_history",
+            help="Conditions in parents, grandparents, siblings"
+        )
+        data['family_history'] = family_history
+        
+        allergies = st.multiselect(
+            "Food Allergies & Intolerances",
+            ["Gluten", "Dairy", "Shellfish", "Tree Nuts", "Peanuts", "Eggs", "Soy", "Fish", "Corn",
+             "Sesame", "Nightshades", "Sulfites", "Histamine", "FODMAPs", "Latex-Fruit"],
+            key="wizard_allergies"
+        )
+        data['allergies'] = allergies
+        
+        st.markdown("---")
+        
+        col_back, col_skip, col_next = st.columns([1, 1, 1])
+        with col_back:
+            if st.button("← Back", use_container_width=True):
+                st.session_state.wizard_step = 1
+                st.rerun()
+        with col_skip:
+            if st.button("Skip to Results", use_container_width=True):
+                user = build_user_from_wizard()
+                st.session_state.user_context = user
+                run_analysis()
+                st.rerun()
+        with col_next:
+            if st.button("Next →", type="primary", use_container_width=True):
+                st.session_state.wizard_step = 3
+                st.rerun()
+    
+    elif step == 3:
+        # Step 3: Lab Results (Optional)
+        st.markdown("## 🧬 Lab Results (Optional)")
+        st.caption("If you have recent bloodwork, entering it makes recommendations more precise.")
+        
+        st.info("💡 **No lab results?** That's okay! Click 'Generate My Plan' to skip this step.")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**Vitamin Levels**")
+            data['b12_level'] = st.number_input("Vitamin B12 (pg/mL)", 0, 2000, data['b12_level'], 
+                                                 help="Normal: 300-900")
+            data['vit_d_level'] = st.number_input("Vitamin D (ng/mL)", 0, 150, data['vit_d_level'], 
+                                                   help="Optimal: 30-60")
+            data['iron_level'] = st.number_input("Iron (mcg/dL)", 0, 300, data['iron_level'], 
+                                                  help="Normal: 60-170")
+        
+        with col2:
+            st.markdown("**Health Markers**")
+            data['crp_level'] = st.number_input("CRP (mg/L)", 0.0, 50.0, data['crp_level'], 
+                                                 help="Optimal: <1.0")
+            data['homocysteine'] = st.number_input("Homocysteine (umol/L)", 0.0, 50.0, data['homocysteine'], 
+                                                    help="Optimal: <10")
+            data['glucose'] = st.number_input("Fasting Glucose (mg/dL)", 0, 400, data['glucose'], 
+                                               help="Normal: <100")
+        
+        with st.expander("Genetic Markers (from special tests)"):
+            col_g1, col_g2 = st.columns(2)
+            with col_g1:
+                data['mthfr_variant'] = st.selectbox("MTHFR Variant", 
+                    ["Not Tested", "Normal", "C677T", "A1298C", "Compound"],
+                    index=["Not Tested", "Normal", "C677T", "A1298C", "Compound"].index(data['mthfr_variant']))
+            with col_g2:
+                data['comt_variant'] = st.selectbox("COMT Variant", 
+                    ["Not Tested", "Normal", "Slow", "Fast"],
+                    index=["Not Tested", "Normal", "Slow", "Fast"].index(data['comt_variant']))
+        
+        st.markdown("---")
+        
+        col_back, col_generate = st.columns([1, 2])
+        with col_back:
+            if st.button("← Back", use_container_width=True):
+                st.session_state.wizard_step = 2
+                st.rerun()
+        with col_generate:
+            if st.button("✨ Generate My Plan", type="primary", use_container_width=True):
+                user = build_user_from_wizard()
+                st.session_state.user_context = user
+                run_analysis()
+                st.rerun()
+
+
 def render_welcome():
-    """Render welcome screen when no analysis is complete."""
+    """Render welcome screen with wizard."""
     # Clean header
     st.markdown('<h1 class="main-header">🥕 EatWell</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Personalized nutrition planning for everyone, regardless of income, location, or circumstances.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Personalized nutrition planning for everyone.</p>', unsafe_allow_html=True)
     
+    # Feature highlights (compact)
     col1, col2, col3 = st.columns(3)
-    
     with col1:
-        st.markdown("""
-        <div class="simple-explain">
-            <strong>💰 Budget-Aware</strong><br>
-            We consider your budget and benefits (SNAP/WIC) to find affordable nutrition that works for you.
-        </div>
-        """, unsafe_allow_html=True)
-    
+        st.markdown("💰 **Budget-Aware** — Works with SNAP/WIC")
     with col2:
-        st.markdown("""
-        <div class="simple-explain">
-            <strong>🧬 Science-Based</strong><br>
-            Recommendations based on your symptoms, family history, and lab results — explained in plain language.
-        </div>
-        """, unsafe_allow_html=True)
-    
+        st.markdown("🧬 **Science-Based** — Personalized to you")
     with col3:
-        st.markdown("""
-        <div class="simple-explain">
-            <strong>📍 Location-Smart</strong><br>
-            Find nearby stores and free food pantries that match your transportation options.
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("📍 **Location-Smart** — Finds nearby stores")
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Tabbed welcome content for cleaner organization
-    welcome_tab1, welcome_tab2, welcome_tab3, welcome_tab4 = st.tabs(["🚀 Get Started", "📚 Learn Health Terms", "❓ FAQ", "💬 Ask AI"])
-    
-    with welcome_tab1:
-        st.info("👈 Fill out the form in the sidebar, or click **Load Demo Data** to see how it works!")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("""
-            **What you'll need (optional but helpful):**
-            - Your weekly grocery budget
-            - Any recent blood test results
-            - Current health symptoms you're experiencing
-            """)
-        
-        with col2:
-            st.success("💡 **Don't have lab results?** No problem! We can still help based on your symptoms and family history alone.")
-    
-    with welcome_tab2:
-        st.markdown("### 🧬 Genetic Markers")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("""
-            <div class="simple-explain">
-                <strong>MTHFR (B-Vitamin Helper)</strong><br>
-                Helps your body use folate for energy and heart health.
-            </div>
-            """, unsafe_allow_html=True)
-        with col2:
-            st.markdown("""
-            <div class="simple-explain">
-                <strong>COMT (Stress Manager)</strong><br>
-                Helps your brain process stress and stay calm.
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("### 💊 Vitamins & Minerals")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("""
-            <div class="simple-explain">
-                <strong>Vitamin B12 (Energy Spark)</strong><br>
-                Keeps your brain sharp and your energy levels up.
-            </div>
-            """, unsafe_allow_html=True)
-        with col2:
-            st.markdown("""
-            <div class="simple-explain">
-                <strong>Vitamin D (Sunshine Shield)</strong><br>
-                Keeps your bones strong and helps you fight off colds.
-            </div>
-            """, unsafe_allow_html=True)
-        with col3:
-            st.markdown("""
-            <div class="simple-explain">
-                <strong>Iron (Oxygen Mover)</strong><br>
-                Carries oxygen to your muscles so you don't feel weak or dizzy.
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("### 📊 Health Markers")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("""
-            <div class="simple-explain">
-                <strong>CRP (The Body's Fire)</strong><br>
-                Measures "inflammation" (internal stress). High levels can wear your body down.
-            </div>
-            """, unsafe_allow_html=True)
-        with col2:
-            st.markdown("""
-            <div class="simple-explain">
-                <strong>Homocysteine (Heart Warning)</strong><br>
-                A protein that can irritate blood vessels if it gets too high.
-            </div>
-            """, unsafe_allow_html=True)
-        with col3:
-            st.markdown("""
-            <div class="simple-explain">
-                <strong>Fasting Glucose (Blood Sugar)</strong><br>
-                Measures sugar in your blood to check your risk for Diabetes.
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.caption("⚠️ Note: These definitions are for educational purposes. Please consult with a healthcare provider to discuss your specific lab results or starting new supplements.")
-    
-    with welcome_tab3:
-        st.markdown("### ❓ Frequently Asked Questions")
-        
-        st.markdown("""
-        **Q: Do I need blood test results to use this?**
-        
-        A: No! We can create recommendations based on your symptoms and family history alone. Lab results just make it more precise.
-        """)
-        
-        st.markdown("---")
-        
-        st.markdown("""
-        **Q: What is SNAP and how do I qualify?**
-        
-        A: SNAP (Supplemental Nutrition Assistance Program) helps low-income individuals and families buy food. Eligibility depends on income and household size. Visit [fns.usda.gov/snap](https://www.fns.usda.gov/snap) to learn more.
-        """)
-        
-        st.markdown("---")
-        
-        st.markdown("""
-        **Q: I don't understand medical terms. Will I be able to use this?**
-        
-        A: Absolutely! We explain every health term in plain, simple language. Look for the 📚 Learn tab after generating your plan.
-        """)
-        
-        st.markdown("---")
-        
-        st.markdown("""
-        **Q: Is this medical advice?**
-        
-        A: This app provides nutrition education and suggestions, not medical advice. Always consult with a doctor for medical decisions.
-        """)
-        
-        st.markdown("---")
-        
-        st.markdown("""
-        **🥗 Why does food matter for health?**
-        
-        Food is powerful medicine. What you eat directly affects:
-        
-        - **Energy levels** — The right nutrients give you lasting energy
-        - **Brain function** — B vitamins and omega-3s support clear thinking
-        - **Inflammation** — Some foods calm inflammation, others increase it
-        - **Disease risk** — Diet can help prevent diabetes, heart disease, and more
-        - **How you feel daily** — Better nutrition = better mood and fewer symptoms
-        
-        The challenge? Knowing WHICH foods YOUR specific body needs. That's what this app helps with!
-        """)
-    
-    with welcome_tab4:
-        render_chatbot()
-    
-    # Ethical Disclaimer
     st.markdown("---")
-    st.markdown("""
-    <div style="background-color: #ffd09b40; border: 1px solid #ec813b; border-radius: 10px; padding: 1.5rem; margin-top: 1rem;">
-        <h4 style="color: #4f7e52; margin-top: 0;">⚖️ Ethical Notice</h4>
-        <p style="font-size: 0.9rem; color: #555;">
-            This tool is for <strong>informational and educational purposes only</strong> and is not a substitute for professional medical advice, diagnosis, or treatment. Our AI-driven insights are recommendations based on your inputs and may contain false positives or inaccuracies; always verify results with a healthcare provider.
-        </p>
-        <p style="font-size: 0.9rem; color: #555;">
-            To protect your dignity and safety, we prioritize <strong>on-device privacy</strong>: your sensitive health and financial data is analyzed locally on your phone and is not stored on our servers or sold to third parties. By using this app, you acknowledge that you are responsible for your own health decisions and should consult a professional before starting any new supplement or dietary regimen.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    
+    # Quick start options
+    col_demo, col_spacer = st.columns([1, 2])
+    with col_demo:
+        if st.button("🚀 Quick Demo (Load Sample Data)", use_container_width=True):
+            user = create_sample_user()
+            st.session_state.user_context = user
+            run_analysis()
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # Render the wizard
+    render_wizard()
+    
+    # Compact disclaimer at bottom
+    st.markdown("---")
+    st.caption("⚠️ This app provides nutrition education, not medical advice. Consult a healthcare provider for medical decisions.")
 
 
 def render_dashboard():
@@ -1243,33 +1213,35 @@ def render_dashboard():
     
     st.markdown("---")
     
-    # Main content tabs (chatbot included as a tab for cleaner layout)
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "🛒 Shopping List", 
-        "🔬 Nutrients", 
-        "📍 Stores",
-        "❓ Why",
-        "📚 Learn",
-        "💬 Ask AI"
+    # 4 tabs for cleaner navigation
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🛒 My Plan", 
+        "📍 Where to Shop",
+        "🔬 Why This?", 
+        "💬 Help"
     ])
     
     with tab1:
         render_shopping_list(shopping, user, nutrients)
     
     with tab2:
-        render_nutrient_analysis(nutrients, user)
-    
-    with tab3:
         render_store_finder(resources, user)
     
-    with tab4:
+    with tab3:
+        # Nutrient analysis + Why section combined
+        render_nutrient_analysis(nutrients, user)
+        st.markdown("---")
         render_why_section(shopping, nutrients, user)
     
-    with tab5:
-        render_learn_section(user, nutrients)
-    
-    with tab6:
-        render_chatbot()
+    with tab4:
+        # Learn + AI chat combined
+        col_learn, col_chat = st.columns([1, 1])
+        with col_learn:
+            st.markdown("### 📚 Learn")
+            render_learn_section(user, nutrients)
+        with col_chat:
+            st.markdown("### 🤖 Ask AI")
+            render_chatbot()
 
 
 def render_shopping_list(shopping: ShoppingList, user: UserContext, nutrients: NutrientPriorityList):
@@ -1596,153 +1568,6 @@ def render_store_finder(resources: ResourceMap, user: UserContext):
         })
     
     st.dataframe(store_data, use_container_width=True, hide_index=True)
-    
-    # =========================================================================
-    # TRADEOFF COMPARISON SECTION
-    # =========================================================================
-    st.markdown("---")
-    st.markdown("### ⚖️ Shopping Trip Tradeoffs")
-    st.markdown("*Compare the true cost of shopping at different stores (food prices + transportation)*")
-    
-    # Estimate average grocery spend based on price tier
-    # Price tier 1 = cheapest (~$40/trip), tier 5 = most expensive (~$80/trip)
-    def estimate_grocery_cost(price_tier: int, is_pantry: bool) -> float:
-        if is_pantry:
-            return 0.0
-        base_costs = {1: 35, 2: 45, 3: 55, 4: 65, 5: 80}
-        return base_costs.get(price_tier, 50)
-    
-    # Build comparison data
-    comparison_stores = []
-    for tf in resources.accessible_stores[:6]:
-        store = tf.store
-        is_pantry = store.store_type == StoreType.FOOD_PANTRY
-        
-        grocery_cost = estimate_grocery_cost(store.price_tier, is_pantry)
-        transport_cost = tf.transit_cost
-        total_trip_cost = grocery_cost + transport_cost
-        
-        # Generate Google Maps directions link
-        if store.latitude != 0 and store.longitude != 0:
-            maps_url = f"https://www.google.com/maps/dir/?api=1&destination={store.latitude},{store.longitude}&travelmode={'walking' if tf.travel_method == 'walk' else 'transit' if tf.travel_method == 'transit' else 'driving'}"
-        else:
-            maps_url = f"https://www.google.com/maps/search/?api=1&query={store.name.replace(' ', '+')}"
-        
-        comparison_stores.append({
-            "store": store,
-            "travel": tf,
-            "grocery_cost": grocery_cost,
-            "transport_cost": transport_cost,
-            "total_cost": total_trip_cost,
-            "maps_url": maps_url,
-            "is_pantry": is_pantry
-        })
-    
-    # Sort by total cost
-    comparison_stores.sort(key=lambda x: x["total_cost"])
-    
-    # Display comparison cards
-    for i, comp in enumerate(comparison_stores):
-        store = comp["store"]
-        tf = comp["travel"]
-        
-        # Determine if this is the best value
-        is_best = i == 0
-        
-        # Card styling
-        if comp["is_pantry"]:
-            card_style = "background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border: 2px solid #28a745;"
-            badge = "🆓 FREE FOOD"
-        elif is_best:
-            card_style = "background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); border: 2px solid #ffc107;"
-            badge = "⭐ BEST VALUE"
-        else:
-            card_style = "background: white; border: 1px solid #ddd;"
-            badge = ""
-        
-        col1, col2, col3 = st.columns([3, 2, 1])
-        
-        with col1:
-            st.markdown(f"""
-            <div style="{card_style} padding: 1rem; border-radius: 10px; margin: 0.5rem 0;">
-                {f'<span style="background:#28a745;color:white;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.8rem;float:right;">{badge}</span>' if badge else ''}
-                <h4 style="margin: 0 0 0.5rem 0; color: #333;">{store.name}</h4>
-                <p style="margin: 0.2rem 0; font-size: 0.9rem;">
-                    📍 <b>{store.distance_miles} mi</b> · {tf.travel_method} · ~{tf.estimated_time_minutes} min
-                </p>
-                <p style="margin: 0.2rem 0; font-size: 0.9rem;">
-                    🕐 {store.hours}
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            if comp["is_pantry"]:
-                st.markdown("""
-                <div style="text-align: center; padding: 0.5rem;">
-                    <p style="margin: 0; font-size: 0.85rem; color: #666;">Food Cost</p>
-                    <p style="margin: 0; font-size: 1.5rem; font-weight: bold; color: #28a745;">FREE</p>
-                    <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: #666;">Transport</p>
-                    <p style="margin: 0; font-size: 1.1rem;">${comp['transport_cost']:.2f}</p>
-                    <hr style="margin: 0.5rem 0;">
-                    <p style="margin: 0; font-size: 0.85rem; color: #666;">Total Trip</p>
-                    <p style="margin: 0; font-size: 1.3rem; font-weight: bold; color: #28a745;">${comp['total_cost']:.2f}</p>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                price_display = "💲" * store.price_tier
-                st.markdown(f"""
-                <div style="text-align: center; padding: 0.5rem;">
-                    <p style="margin: 0; font-size: 0.85rem; color: #666;">Est. Groceries {price_display}</p>
-                    <p style="margin: 0; font-size: 1.2rem;">~${comp['grocery_cost']:.0f}</p>
-                    <p style="margin: 0.3rem 0 0 0; font-size: 0.85rem; color: #666;">Transport</p>
-                    <p style="margin: 0; font-size: 1.1rem;">${comp['transport_cost']:.2f}</p>
-                    <hr style="margin: 0.5rem 0;">
-                    <p style="margin: 0; font-size: 0.85rem; color: #666;">Total Trip</p>
-                    <p style="margin: 0; font-size: 1.3rem; font-weight: bold;">~${comp['total_cost']:.0f}</p>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown(f"""
-            <div style="text-align: center; padding: 1rem;">
-                <a href="{comp['maps_url']}" target="_blank" style="
-                    display: inline-block;
-                    padding: 0.5rem 1rem;
-                    background: #4285f4;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 5px;
-                    font-size: 0.9rem;
-                ">🗺️ Directions</a>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    # Tradeoff insight
-    if len(comparison_stores) >= 2:
-        cheapest = comparison_stores[0]
-        closest_paid = next((c for c in comparison_stores if not c["is_pantry"]), None)
-        farthest_cheap = None
-        for c in comparison_stores:
-            if not c["is_pantry"] and c["store"].price_tier <= 2:
-                farthest_cheap = c
-                break
-        
-        st.markdown("---")
-        st.markdown("### 💡 Insights")
-        
-        if cheapest["is_pantry"]:
-            st.success(f"**Best option:** Visit **{cheapest['store'].name}** for free food! Even with ${cheapest['transport_cost']:.2f} transport, your total cost is only **${cheapest['total_cost']:.2f}**.")
-        
-        # Show tradeoff if there's a meaningful comparison
-        if farthest_cheap and closest_paid and farthest_cheap != closest_paid:
-            savings = closest_paid["total_cost"] - farthest_cheap["total_cost"]
-            extra_time = farthest_cheap["travel"].estimated_time_minutes - closest_paid["travel"].estimated_time_minutes
-            
-            if savings > 5:
-                st.info(f"**Tradeoff:** Going to **{farthest_cheap['store'].name}** (farther, cheaper) saves ~${savings:.0f} compared to **{closest_paid['store'].name}** (closer, pricier), but takes {abs(extra_time)} min {'more' if extra_time > 0 else 'less'} travel time.")
-            elif savings < -5:
-                st.info(f"**Tradeoff:** **{closest_paid['store'].name}** is closer and actually cheaper overall because you save on transport costs!")
 
 
 def render_why_section(shopping: ShoppingList, nutrients: NutrientPriorityList, user: UserContext):
