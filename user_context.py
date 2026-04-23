@@ -73,6 +73,36 @@ class MedicalHistory:
 
 
 @dataclass
+class Demographics:
+    """Demographic information for personalized nutrition recommendations."""
+    age: Optional[int] = None  # Years
+    biological_sex: Optional[str] = None  # "female", "male", "prefer_not_to_say"
+    height_feet: Optional[int] = None  # Height in feet
+    height_inches: Optional[int] = None  # Height in inches (0-11)
+    weight_lbs: Optional[float] = None  # Weight in pounds
+    activity_level: Optional[str] = None  # "sedentary", "lightly_active", "moderately_active", "very_active"
+    pregnancy_status: Optional[str] = None  # "none", "pregnant", "breastfeeding", "trying_to_conceive"
+    dietary_preference: Optional[str] = None  # "none", "vegetarian", "vegan", "pescatarian", "keto", "mediterranean"
+    health_goals: List[str] = field(default_factory=list)  # e.g., ["weight_loss", "build_muscle"]
+    
+    @property
+    def height_inches_total(self) -> Optional[int]:
+        """Get total height in inches."""
+        if self.height_feet is not None:
+            inches = self.height_inches or 0
+            return (self.height_feet * 12) + inches
+        return None
+    
+    @property
+    def bmi(self) -> Optional[float]:
+        """Calculate BMI if height and weight are available."""
+        height_in = self.height_inches_total
+        if height_in and self.weight_lbs:
+            return (self.weight_lbs / (height_in ** 2)) * 703
+        return None
+
+
+@dataclass
 class LabResults:
     """Simulated lab and methylation results."""
     mthfr_variant: Optional[str] = None  # e.g., "C677T", "A1298C", "compound"
@@ -99,6 +129,7 @@ class UserContext:
     logistics: Logistics
     medical: MedicalHistory
     lab_results: Optional[LabResults] = None
+    demographics: Optional[Demographics] = None
     
     def summary(self) -> dict:
         """Generate a summary of user context for display."""

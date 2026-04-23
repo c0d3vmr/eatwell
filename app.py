@@ -39,7 +39,7 @@ except ImportError:
 # Import app modules
 from user_context import (
     UserContext, Financials, Logistics, MedicalHistory, LabResults,
-    create_sample_user
+    Demographics, create_sample_user
 )
 from bio_analyzer import analyze_lab_data, NutrientPriorityList
 from resource_locator import resource_locator, ResourceMap, StoreType, get_base_coordinates
@@ -305,6 +305,45 @@ TRANSLATIONS = {
     "health_markers": {"en": "Health Markers", "es": "Marcadores de Salud"},
     "genetic_markers": {"en": "Genetic Markers (from special tests)", "es": "Marcadores Genéticos (de pruebas especiales)"},
     "generate_my_plan": {"en": "Generate My Plan", "es": "Generar Mi Plan"},
+    
+    # Demographics (Step 1)
+    "about_you": {"en": "About You (Optional)", "es": "Sobre Ti (Opcional)"},
+    "age": {"en": "Age", "es": "Edad"},
+    "biological_sex": {"en": "Biological Sex", "es": "Sexo Biológico"},
+    "female": {"en": "Female", "es": "Femenino"},
+    "male": {"en": "Male", "es": "Masculino"},
+    "prefer_not_to_say": {"en": "Prefer not to say", "es": "Prefiero no decir"},
+    "height": {"en": "Height", "es": "Altura"},
+    "feet": {"en": "ft", "es": "pies"},
+    "inches": {"en": "in", "es": "pulg"},
+    "weight": {"en": "Weight (lbs)", "es": "Peso (lbs)"},
+    "activity_level": {"en": "Activity Level", "es": "Nivel de Actividad"},
+    "not_specified": {"en": "Not specified", "es": "No especificado"},
+    "sedentary": {"en": "Sedentary", "es": "Sedentario"},
+    "lightly_active": {"en": "Lightly Active", "es": "Ligeramente Activo"},
+    "moderately_active": {"en": "Moderately Active", "es": "Moderadamente Activo"},
+    "very_active": {"en": "Very Active", "es": "Muy Activo"},
+    
+    # Demographics (Step 2)
+    "pregnancy_status": {"en": "Pregnancy/Nursing Status", "es": "Estado de Embarazo/Lactancia"},
+    "not_applicable": {"en": "Not applicable", "es": "No aplica"},
+    "pregnant": {"en": "Pregnant", "es": "Embarazada"},
+    "breastfeeding": {"en": "Breastfeeding", "es": "Lactando"},
+    "trying_to_conceive": {"en": "Trying to Conceive", "es": "Intentando Concebir"},
+    "dietary_preference": {"en": "Dietary Preference", "es": "Preferencia Dietética"},
+    "no_preference": {"en": "No specific preference", "es": "Sin preferencia específica"},
+    "vegetarian": {"en": "Vegetarian", "es": "Vegetariano"},
+    "vegan": {"en": "Vegan", "es": "Vegano"},
+    "pescatarian": {"en": "Pescatarian", "es": "Pescetariano"},
+    "keto": {"en": "Keto/Low-Carb", "es": "Keto/Bajo en Carbohidratos"},
+    "mediterranean": {"en": "Mediterranean", "es": "Mediterránea"},
+    "health_goals": {"en": "Health Goals", "es": "Metas de Salud"},
+    "weight_loss": {"en": "Weight Loss", "es": "Pérdida de Peso"},
+    "weight_gain": {"en": "Weight Gain", "es": "Aumento de Peso"},
+    "maintain_weight": {"en": "Maintain Weight", "es": "Mantener Peso"},
+    "build_muscle": {"en": "Build Muscle", "es": "Desarrollar Músculo"},
+    "improve_energy": {"en": "Improve Energy", "es": "Mejorar Energía"},
+    "better_sleep": {"en": "Better Sleep", "es": "Mejor Sueño"},
     
     # Dashboard
     "welcome_back": {"en": "Welcome back", "es": "Bienvenido de nuevo"},
@@ -701,6 +740,17 @@ def init_session_state():
             'has_vehicle': False,
             'has_transit': True,
             'trips_per_week': 2,
+            # Demographics (all optional)
+            'age': None,
+            'biological_sex': 'Prefer not to say',
+            'height_feet': None,
+            'height_inches': None,
+            'weight_lbs': None,
+            'activity_level': 'Not specified',
+            'pregnancy_status': 'None',
+            'dietary_preference': 'None',
+            'health_goals': [],
+            # Health info
             'family_history': [],
             'current_symptoms': [],
             'allergies': [],
@@ -1216,6 +1266,17 @@ def render_sidebar():
                     'has_vehicle': False,
                     'has_transit': True,
                     'trips_per_week': 2,
+                    # Demographics (all optional)
+                    'age': None,
+                    'biological_sex': 'Prefer not to say',
+                    'height_feet': None,
+                    'height_inches': None,
+                    'weight_lbs': None,
+                    'activity_level': 'Not specified',
+                    'pregnancy_status': 'None',
+                    'dietary_preference': 'None',
+                    'health_goals': [],
+                    # Health info
                     'family_history': [],
                     'current_symptoms': [],
                     'allergies': [],
@@ -1229,7 +1290,7 @@ def render_sidebar():
                     'glucose': 0
                 }
                 # Clear multiselect keys
-                for key in ['wizard_symptoms', 'wizard_family_history', 'wizard_allergies']:
+                for key in ['wizard_symptoms', 'wizard_family_history', 'wizard_allergies', 'wizard_health_goals']:
                     if key in st.session_state:
                         del st.session_state[key]
                 st.rerun()
@@ -1293,13 +1354,60 @@ def build_user_from_wizard():
             glucose_fasting=float(data['glucose']) if data['glucose'] > 0 else None
         )
     
+    # Build demographics (all optional)
+    demographics = None
+    has_demographics = any([
+        data.get('age'),
+        data.get('biological_sex') not in [None, 'Prefer not to say', t('prefer_not_to_say')],
+        data.get('height_feet'),
+        data.get('weight_lbs'),
+        data.get('activity_level') not in [None, 'Not specified', t('not_specified')],
+        data.get('pregnancy_status') not in [None, 'None', t('not_applicable')],
+        data.get('dietary_preference') not in [None, 'None', t('no_preference')],
+        data.get('health_goals')
+    ])
+    
+    if has_demographics:
+        # Map UI values to stored values
+        sex_map = {t('female'): 'female', t('male'): 'male', t('prefer_not_to_say'): None, 'Female': 'female', 'Male': 'male'}
+        activity_map = {
+            t('sedentary'): 'sedentary', t('lightly_active'): 'lightly_active',
+            t('moderately_active'): 'moderately_active', t('very_active'): 'very_active',
+            t('not_specified'): None, 'Sedentary': 'sedentary', 'Lightly Active': 'lightly_active',
+            'Moderately Active': 'moderately_active', 'Very Active': 'very_active'
+        }
+        preg_map = {
+            t('pregnant'): 'pregnant', t('breastfeeding'): 'breastfeeding',
+            t('trying_to_conceive'): 'trying_to_conceive', t('not_applicable'): None,
+            'Pregnant': 'pregnant', 'Breastfeeding': 'breastfeeding', 'Trying to Conceive': 'trying_to_conceive'
+        }
+        diet_map = {
+            t('vegetarian'): 'vegetarian', t('vegan'): 'vegan', t('pescatarian'): 'pescatarian',
+            t('keto'): 'keto', t('mediterranean'): 'mediterranean', t('no_preference'): None,
+            'Vegetarian': 'vegetarian', 'Vegan': 'vegan', 'Pescatarian': 'pescatarian',
+            'Keto/Low-Carb': 'keto', 'Mediterranean': 'mediterranean'
+        }
+        
+        demographics = Demographics(
+            age=data.get('age'),
+            biological_sex=sex_map.get(data.get('biological_sex')),
+            height_feet=data.get('height_feet'),
+            height_inches=data.get('height_inches') if data.get('height_inches') else 0,
+            weight_lbs=data.get('weight_lbs'),
+            activity_level=activity_map.get(data.get('activity_level')),
+            pregnancy_status=preg_map.get(data.get('pregnancy_status')),
+            dietary_preference=diet_map.get(data.get('dietary_preference')),
+            health_goals=[g.lower().replace(" ", "_") for g in data.get('health_goals', [])]
+        )
+    
     return UserContext(
         user_id=f"user_{name.lower().replace(' ', '_')}",
         name=name,
         financials=financials,
         logistics=logistics,
         medical=medical,
-        lab_results=lab_results
+        lab_results=lab_results,
+        demographics=demographics
     )
 
 
@@ -1344,6 +1452,46 @@ def render_wizard():
                 data['has_transit'] = st.checkbox(t("public_transit"), value=data['has_transit'])
             
             data['trips_per_week'] = st.slider(t("grocery_trips_week"), 1, 7, data['trips_per_week'])
+        
+        # Demographics section (optional)
+        with st.expander(f"📋 {t('about_you')}", expanded=False):
+            demo_col1, demo_col2 = st.columns(2)
+            
+            with demo_col1:
+                # Age (optional)
+                age_value = data['age'] if data['age'] is not None else 0
+                age_input = st.number_input(t("age"), min_value=0, max_value=120, value=age_value, 
+                                           help="Leave at 0 to skip")
+                data['age'] = age_input if age_input > 0 else None
+                
+                # Biological sex
+                sex_options = [t("prefer_not_to_say"), t("female"), t("male")]
+                sex_index = sex_options.index(data['biological_sex']) if data['biological_sex'] in sex_options else 0
+                data['biological_sex'] = st.selectbox(t("biological_sex"), sex_options, index=sex_index)
+                
+                # Activity level
+                activity_options = [t("not_specified"), t("sedentary"), t("lightly_active"), 
+                                   t("moderately_active"), t("very_active")]
+                activity_index = activity_options.index(data['activity_level']) if data['activity_level'] in activity_options else 0
+                data['activity_level'] = st.selectbox(t("activity_level"), activity_options, index=activity_index)
+            
+            with demo_col2:
+                # Height (feet and inches)
+                st.markdown(f"**{t('height')}**")
+                height_col1, height_col2 = st.columns(2)
+                with height_col1:
+                    feet_value = data['height_feet'] if data['height_feet'] is not None else 0
+                    feet_input = st.number_input(t("feet"), min_value=0, max_value=8, value=feet_value)
+                    data['height_feet'] = feet_input if feet_input > 0 else None
+                with height_col2:
+                    inches_value = data['height_inches'] if data['height_inches'] is not None else 0
+                    data['height_inches'] = st.number_input(t("inches"), min_value=0, max_value=11, value=inches_value)
+                
+                # Weight
+                weight_value = data['weight_lbs'] if data['weight_lbs'] is not None else 0
+                weight_input = st.number_input(t("weight"), min_value=0, max_value=500, value=int(weight_value),
+                                              help="Leave at 0 to skip")
+                data['weight_lbs'] = float(weight_input) if weight_input > 0 else None
         
         st.markdown("---")
         
@@ -1393,6 +1541,38 @@ def render_wizard():
             key="wizard_allergies"
         )
         data['allergies'] = allergies
+        
+        # Additional lifestyle/dietary preferences
+        st.markdown("---")
+        
+        pref_col1, pref_col2 = st.columns(2)
+        
+        with pref_col1:
+            # Dietary preference
+            diet_options = [t("no_preference"), t("vegetarian"), t("vegan"), t("pescatarian"), 
+                          t("keto"), t("mediterranean")]
+            diet_index = diet_options.index(data['dietary_preference']) if data['dietary_preference'] in diet_options else 0
+            data['dietary_preference'] = st.selectbox(t("dietary_preference"), diet_options, index=diet_index)
+            
+            # Pregnancy/breastfeeding status (show only if biological sex is Female)
+            if data.get('biological_sex') == t("female"):
+                preg_options = [t("not_applicable"), t("pregnant"), t("breastfeeding"), t("trying_to_conceive")]
+                preg_index = preg_options.index(data['pregnancy_status']) if data['pregnancy_status'] in preg_options else 0
+                data['pregnancy_status'] = st.selectbox(t("pregnancy_status"), preg_options, index=preg_index)
+        
+        with pref_col2:
+            # Health goals - initialize multiselect key
+            if 'wizard_health_goals' not in st.session_state:
+                st.session_state.wizard_health_goals = data['health_goals']
+            
+            health_goals = st.multiselect(
+                t("health_goals"),
+                [t("weight_loss"), t("weight_gain"), t("maintain_weight"), t("build_muscle"), 
+                 t("improve_energy"), t("better_sleep")],
+                key="wizard_health_goals",
+                help="Select your primary health goals"
+            )
+            data['health_goals'] = health_goals
         
         st.markdown("---")
         

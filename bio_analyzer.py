@@ -6,7 +6,7 @@ Outputs a Nutrient Priority List based on genetic markers and symptoms.
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
-from user_context import UserContext, LabResults, MedicalHistory
+from user_context import UserContext, LabResults, MedicalHistory, Demographics
 
 
 @dataclass
@@ -82,6 +82,7 @@ NUTRIENT_FOOD_SOURCES = {
     "Magnesium": [
         "spinach", "pumpkin seeds", "black beans", "almonds",
         "avocado", "dark chocolate", "quinoa"
+        
     ],
     "Fiber": [
         "oats", "beans", "lentils", "berries", "broccoli",
@@ -391,6 +392,173 @@ def analyze_family_history(medical: MedicalHistory) -> List[NutrientNeed]:
     return needs
 
 
+def analyze_demographics(demographics: Demographics) -> List[NutrientNeed]:
+    """Analyze demographic factors for nutrient recommendations."""
+    needs = []
+    
+    # Pregnancy/breastfeeding needs
+    if demographics.pregnancy_status:
+        if demographics.pregnancy_status == "pregnant":
+            needs.append(NutrientNeed(
+                nutrient="Methylfolate",
+                priority=1,
+                reason="Pregnancy requires increased folate for fetal neural development",
+                related_markers=["pregnancy", "neural_tube"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Methylfolate"]
+            ))
+            needs.append(NutrientNeed(
+                nutrient="Iron",
+                priority=1,
+                reason="Pregnancy increases iron needs for blood volume expansion",
+                related_markers=["pregnancy", "blood_volume"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Iron"]
+            ))
+            needs.append(NutrientNeed(
+                nutrient="Omega-3 Fatty Acids",
+                priority=2,
+                reason="DHA is crucial for fetal brain and eye development",
+                related_markers=["pregnancy", "DHA", "brain_development"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Omega-3 Fatty Acids"]
+            ))
+        elif demographics.pregnancy_status == "breastfeeding":
+            needs.append(NutrientNeed(
+                nutrient="Vitamin D",
+                priority=2,
+                reason="Breastfeeding mothers need adequate Vitamin D for milk quality",
+                related_markers=["breastfeeding", "lactation"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Vitamin D"]
+            ))
+            needs.append(NutrientNeed(
+                nutrient="Omega-3 Fatty Acids",
+                priority=2,
+                reason="DHA in breast milk supports infant brain development",
+                related_markers=["breastfeeding", "DHA"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Omega-3 Fatty Acids"]
+            ))
+        elif demographics.pregnancy_status == "trying_to_conceive":
+            needs.append(NutrientNeed(
+                nutrient="Methylfolate",
+                priority=1,
+                reason="Pre-conception folate is critical for preventing neural tube defects",
+                related_markers=["preconception", "fertility"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Methylfolate"]
+            ))
+    
+    # Age-based needs
+    if demographics.age:
+        if demographics.age >= 50:
+            needs.append(NutrientNeed(
+                nutrient="Vitamin B12",
+                priority=2,
+                reason=f"B12 absorption decreases after age 50 (current age: {demographics.age})",
+                related_markers=["age", "absorption"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Vitamin B12"]
+            ))
+            needs.append(NutrientNeed(
+                nutrient="Vitamin D",
+                priority=2,
+                reason="Vitamin D synthesis decreases with age, important for bone health",
+                related_markers=["age", "bone_health"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Vitamin D"]
+            ))
+        if demographics.age >= 65:
+            needs.append(NutrientNeed(
+                nutrient="Fiber",
+                priority=3,
+                reason="Adequate fiber supports digestive health and heart health in older adults",
+                related_markers=["age", "digestion", "heart"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Fiber"]
+            ))
+    
+    # Activity level considerations
+    if demographics.activity_level in ["moderately_active", "very_active"]:
+        needs.append(NutrientNeed(
+            nutrient="Magnesium",
+            priority=3,
+            reason=f"Active individuals ({demographics.activity_level.replace('_', ' ')}) have higher magnesium needs for muscle function",
+            related_markers=["activity", "muscle_function", "recovery"],
+            food_sources=NUTRIENT_FOOD_SOURCES["Magnesium"]
+        ))
+        needs.append(NutrientNeed(
+            nutrient="Iron",
+            priority=3,
+            reason="Physical activity increases iron loss through sweat and intensity",
+            related_markers=["activity", "endurance"],
+            food_sources=NUTRIENT_FOOD_SOURCES["Iron"]
+        ))
+    
+    # Dietary preference adjustments
+    if demographics.dietary_preference:
+        if demographics.dietary_preference in ["vegan", "vegetarian"]:
+            needs.append(NutrientNeed(
+                nutrient="Vitamin B12",
+                priority=1,
+                reason=f"{demographics.dietary_preference.title()} diet requires B12 supplementation or fortified foods",
+                related_markers=["diet", "plant_based"],
+                food_sources=["fortified cereals", "nutritional yeast", "fortified plant milk", "fortified tofu"]
+            ))
+            needs.append(NutrientNeed(
+                nutrient="Iron",
+                priority=2,
+                reason="Plant-based iron (non-heme) is less bioavailable; pair with vitamin C",
+                related_markers=["diet", "plant_based", "bioavailability"],
+                food_sources=["spinach", "lentils", "chickpeas", "fortified cereals", "pumpkin seeds", "quinoa"]
+            ))
+            if demographics.dietary_preference == "vegan":
+                needs.append(NutrientNeed(
+                    nutrient="Omega-3 Fatty Acids",
+                    priority=2,
+                    reason="Vegan diets lack EPA/DHA; focus on ALA conversion sources",
+                    related_markers=["diet", "vegan", "ALA"],
+                    food_sources=["flaxseed", "chia seeds", "walnuts", "hemp seeds", "algae oil supplements"]
+                ))
+    
+    # Health goals
+    if demographics.health_goals:
+        goal_list = demographics.health_goals
+        if "weight_loss" in goal_list:
+            needs.append(NutrientNeed(
+                nutrient="Fiber",
+                priority=3,
+                reason="High fiber intake supports satiety and healthy weight management",
+                related_markers=["weight_management", "satiety"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Fiber"]
+            ))
+        if "build_muscle" in goal_list or "weight_gain" in goal_list:
+            needs.append(NutrientNeed(
+                nutrient="Magnesium",
+                priority=3,
+                reason="Magnesium supports muscle protein synthesis and recovery",
+                related_markers=["muscle", "protein_synthesis"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Magnesium"]
+            ))
+        if "improve_energy" in goal_list:
+            needs.append(NutrientNeed(
+                nutrient="Vitamin B12",
+                priority=2,
+                reason="B12 is essential for energy metabolism and combating fatigue",
+                related_markers=["energy", "metabolism"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Vitamin B12"]
+            ))
+            needs.append(NutrientNeed(
+                nutrient="Iron",
+                priority=2,
+                reason="Iron deficiency is a common cause of fatigue and low energy",
+                related_markers=["energy", "oxygen_transport"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Iron"]
+            ))
+        if "better_sleep" in goal_list:
+            needs.append(NutrientNeed(
+                nutrient="Magnesium",
+                priority=3,
+                reason="Magnesium supports relaxation and sleep quality",
+                related_markers=["sleep", "relaxation", "GABA"],
+                food_sources=NUTRIENT_FOOD_SOURCES["Magnesium"]
+            ))
+    
+    return needs
+
+
 def consolidate_nutrient_needs(all_needs: List[NutrientNeed]) -> List[NutrientNeed]:
     """Consolidate duplicate nutrients, keeping highest priority."""
     nutrient_map: Dict[str, NutrientNeed] = {}
@@ -445,6 +613,10 @@ def analyze_lab_data(user_context: UserContext) -> NutrientPriorityList:
     # Analyze medical history
     all_needs.extend(analyze_symptoms(user_context.medical))
     all_needs.extend(analyze_family_history(user_context.medical))
+    
+    # Analyze demographics if available
+    if user_context.demographics:
+        all_needs.extend(analyze_demographics(user_context.demographics))
     
     # Check for allergies that might conflict with food sources
     allergies = [a.lower() for a in user_context.medical.known_allergies]
