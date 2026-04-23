@@ -237,8 +237,34 @@ st.markdown("""
     div[data-testid="stMetricDelta"] {
         color: #ec813b;
     }
+    /* Feedback link - top right corner */
+    .feedback-link {
+        position: fixed;
+        top: 0.75rem;
+        right: 1rem;
+        z-index: 1000;
+        font-size: 0.9rem;
+    }
+    .feedback-link a {
+        color: #4f7e52;
+        text-decoration: none;
+        padding: 0.4rem 0.8rem;
+        background-color: #ffd09b;
+        border-radius: 8px;
+        transition: background-color 0.2s ease;
+    }
+    .feedback-link a:hover {
+        background-color: #ec813b;
+        color: white;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+# Feedback link - appears on all pages
+st.markdown(
+    '<div class="feedback-link"><a href="https://forms.gle/yZB7c3rqnhvhgDBw9" target="_blank">Share your feedback here 🥕</a></div>',
+    unsafe_allow_html=True
+)
 
 
 # =============================================================================
