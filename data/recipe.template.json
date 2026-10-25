@@ -1,0 +1,105 @@
+{
+  "recipe_id": "example_recipe_001",
+  "record_version": 1,
+  "title": "Example recipe title",
+  "description": null,
+  "language": "en",
+  "source": {
+    "title": null,
+    "author_or_organization": null,
+    "url": null,
+    "source_recipe_id": null,
+    "date_accessed": null,
+    "reuse_license": null,
+    "reuse_status": "unknown"
+  },
+  "adaptation_notes": null,
+  "yield_servings": null,
+  "serving_description": null,
+  "prep_time_minutes": null,
+  "cook_time_minutes": null,
+  "total_time_minutes": null,
+  "time_is_estimated": null,
+  "skill_level": null,
+  "equipment": {
+    "required": [],
+    "optional": []
+  },
+  "ingredients": [
+    {
+      "ingredient_id": null,
+      "display_name": null,
+      "quantity": null,
+      "unit": null,
+      "preparation": null,
+      "optional": false,
+      "group": null,
+      "substitution_group": null,
+      "notes": null
+    }
+  ],
+  "steps": [
+    {
+      "step_number": 1,
+      "instruction": null,
+      "duration_minutes": null,
+      "temperature": null,
+      "temperature_unit": null
+    }
+  ],
+  "food_safety_notes": [],
+  "allergens": {
+    "contains": [],
+    "may_contain": [],
+    "review_status": "unknown",
+    "cross_contact_notes": null
+  },
+  "dietary_tags": [],
+  "dietary_review_status": "not_reviewed",
+  "nutrition_per_serving": {
+    "basis": null,
+    "energy_kcal": null,
+    "protein_g": null,
+    "carbohydrate_g": null,
+    "fiber_g": null,
+    "total_fat_g": null,
+    "saturated_fat_g": null,
+    "sodium_mg": null,
+    "added_sugar_g": null,
+    "method": null,
+    "database_name": null,
+    "database_version": null,
+    "calculated_at": null,
+    "ingredient_mappings": [],
+    "review_status": "not_reviewed"
+  },
+  "cost_estimate": {
+    "currency": "USD",
+    "price_date": null,
+    "source_name": null,
+    "source_url": null,
+    "estimated_recipe_cost": null,
+    "estimated_cost_per_serving": null,
+    "package_assumptions": [],
+    "pantry_staple_assumptions": [],
+    "rounding_and_waste_notes": null,
+    "review_status": "not_reviewed"
+  },
+  "accessibility": {
+    "active_time_minutes": null,
+    "requires_refrigeration": null,
+    "requires_freezer": null,
+    "batch_cook_suitable": null,
+    "storage_after_preparation": null,
+    "storage_source_url": null
+  },
+  "review": {
+    "status": "draft",
+    "reviewers": [],
+    "fields_reviewed": [],
+    "reviewed_at": null,
+    "unresolved_issues": []
+  },
+  "created_at": null,
+  "updated_at": null
+}

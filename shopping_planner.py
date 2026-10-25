@@ -167,6 +167,50 @@ def calculate_priority(nutrient_priority: int, budget_tier: str) -> ShoppingPrio
         return ShoppingPriority.OPTIONAL
 
 
+def _matches_dietary_preference(food: FoodItem, user_context: UserContext) -> bool:
+    demographics = user_context.demographics
+    preference = (
+        demographics.dietary_preference.lower()
+        if demographics and demographics.dietary_preference
+        else ""
+    )
+    name = food.name.lower()
+    meat_or_seafood = (
+        food.category == "meat"
+        or any(term in name for term in ("salmon", "sardine", "fish", "seafood"))
+    )
+
+    if preference == "vegan":
+        animal_products = (
+            "egg", "milk", "yogurt", "salmon", "sardine", "fish",
+            "seafood", "chicken", "beef",
+        )
+        return not any(term in name for term in animal_products)
+    if preference == "vegetarian":
+        return not meat_or_seafood
+    if preference == "pescatarian":
+        return food.category != "meat" and not any(
+            term in name for term in ("chicken", "beef", "liver")
+        )
+    return True
+
+
+def _matches_allergies(food: FoodItem, user_context: UserContext) -> bool:
+    name = food.name.lower()
+    for allergy in user_context.medical.known_allergies:
+        normalized = allergy.lower().strip()
+        if normalized in name or normalized.rstrip("s") in name:
+            return False
+        if normalized in {"tree nuts", "tree nut"} and any(
+            nut in name
+            for nut in ("walnut", "almond", "pecan", "cashew", "pistachio", "hazelnut")
+        ):
+            return False
+        if normalized == "gluten" and "oat" in name:
+            return False
+    return True
+
+
 def generate_shopping_list(
     user_context: UserContext,
     nutrient_priorities: NutrientPriorityList,
@@ -244,10 +288,11 @@ def generate_shopping_list(
             continue
         
         # Filter by allergies
-        allergies = [a.lower() for a in user_context.medical.known_allergies]
-        safe_options = [f for f in food_options if not any(
-            allergy in f.name.lower() for allergy in allergies
-        )]
+        safe_options = [
+            food for food in food_options
+            if _matches_allergies(food, user_context)
+            and _matches_dietary_preference(food, user_context)
+        ]
         
         if not safe_options:
             reasoning.append(f"All foods for {need.nutrient} conflict with allergies")
@@ -333,6 +378,10 @@ def generate_shopping_list(
             
         staple = FOOD_DATABASE.get(staple_key)
         if not staple:
+            continue
+        if not _matches_allergies(staple, user_context):
+            continue
+        if not _matches_dietary_preference(staple, user_context):
             continue
             
         already_have = any(staple.name == item.food.name for item in shopping_list.items)

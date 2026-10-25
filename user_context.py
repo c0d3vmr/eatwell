@@ -130,6 +130,7 @@ class UserContext:
     medical: MedicalHistory
     lab_results: Optional[LabResults] = None
     demographics: Optional[Demographics] = None
+    household_size: int = 1
     
     def summary(self) -> dict:
         """Generate a summary of user context for display."""
@@ -237,7 +238,7 @@ def create_sample_user() -> UserContext:
             annual_income=28000
         ),
         logistics=Logistics(
-            zip_code="30312",
+            zip_code="77009",
             has_vehicle=False,
             has_public_transit=True,
             grocery_trips_per_week=2,

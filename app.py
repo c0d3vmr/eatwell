@@ -6,6 +6,8 @@ A beautiful, interactive prototype for personalized nutrition planning with heal
 import streamlit as st
 from typing import Optional
 import os
+import logging
+from pathlib import Path
 
 # OpenAI import (optional - for AI chatbot)
 try:
@@ -14,11 +16,12 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
-# Google Gemini import (optional - free AI chatbot)
+# Google Gen AI import (optional - for Gemini chatbot)
 try:
-    import google.generativeai as genai
+    from google import genai as _genai
     GEMINI_AVAILABLE = True
 except ImportError:
+    _genai = None
     GEMINI_AVAILABLE = False
 
 # Map visualization imports (optional)
@@ -47,6 +50,28 @@ from shopping_planner import (
     generate_shopping_list, ShoppingList, ShoppingPriority,
     get_item_explanation
 )
+from rag_pipeline import (
+    MealPlanError,
+    ResourceLookupError,
+    generate_meal_plan,
+    retrieve_houston_resources,
+)
+from profile_store import (
+    apply_profile_to_wizard,
+    create_supabase_client,
+    profile_from_user,
+)
+from env_loader import load_env_file
+from gemini_service import GeminiRequestError, generate_text
+from google_routes import (
+    RouteLookupError,
+    compute_route,
+    google_maps_directions_url,
+)
+from resource_map_view import build_resource_map, mappable_resources
+
+LOGGER = logging.getLogger(__name__)
+load_env_file(Path(__file__).parent / ".env")
 
 # Page config
 st.set_page_config(
@@ -306,6 +331,7 @@ TRANSLATIONS = {
     "your_name": {"en": "Your Name (optional)", "es": "Tu Nombre (opcional)"},
     "enter_your_name": {"en": "Enter your name", "es": "Ingresa tu nombre"},
     "weekly_grocery_budget": {"en": "Weekly Grocery Budget ($)", "es": "Presupuesto Semanal ($)"},
+    "household_size": {"en": "Household size", "es": "Personas en el hogar"},
     "benefits": {"en": "Benefits", "es": "Beneficios"},
     "zip_code": {"en": "ZIP Code", "es": "Código Postal"},
     "transportation": {"en": "Transportation", "es": "Transporte"},
@@ -379,7 +405,7 @@ TRANSLATIONS = {
     "over_budget": {"en": "Over budget", "es": "Sobre presupuesto"},
     "priority_nutrients": {"en": "Priority Nutrients", "es": "Nutrientes Prioritarios"},
     "critical": {"en": "critical", "es": "críticos"},
-    "nearby_stores": {"en": "Nearby Stores", "es": "Tiendas Cercanas"},
+    "nearby_stores": {"en": "Houston Resources", "es": "Recursos de Houston"},
     "pantries": {"en": "pantries", "es": "despensas"},
     "total_cost": {"en": "Total Cost", "es": "Costo Total"},
     "transport": {"en": "transport", "es": "transporte"},
@@ -731,6 +757,22 @@ def init_session_state():
         st.session_state.resource_map = None
     if 'shopping_list' not in st.session_state:
         st.session_state.shopping_list = None
+    if 'rag_resources' not in st.session_state:
+        st.session_state.rag_resources = None
+    if 'resource_source' not in st.session_state:
+        st.session_state.resource_source = ""
+    if 'route_estimates' not in st.session_state:
+        st.session_state.route_estimates = {}
+    if 'meal_plan' not in st.session_state:
+        st.session_state.meal_plan = None
+    if 'meal_plan_error' not in st.session_state:
+        st.session_state.meal_plan_error = None
+    if 'supabase_client' not in st.session_state:
+        st.session_state.supabase_client = None
+    if 'auth_user' not in st.session_state:
+        st.session_state.auth_user = None
+    if 'pending_saved_profile' not in st.session_state:
+        st.session_state.pending_saved_profile = None
     if 'analysis_complete' not in st.session_state:
         st.session_state.analysis_complete = False
     if 'spanish_mode' not in st.session_state:
@@ -739,6 +781,10 @@ def init_session_state():
         st.session_state.chat_messages = [
             {"role": "assistant", "content": "Hi! I'm your EatWell nutrition assistant. 🥕 Ask me anything about health terms, nutrients, foods, or how to use this app. I'm here to help you understand your health in plain language!"}
         ]
+    if 'ai_error' not in st.session_state:
+        st.session_state.ai_error = None
+    if 'last_ai_provider' not in st.session_state:
+        st.session_state.last_ai_provider = None
     if 'openai_api_key' not in st.session_state:
         # Check environment variable first
         st.session_state.openai_api_key = os.environ.get('OPENAI_API_KEY', '')
@@ -760,6 +806,7 @@ def init_session_state():
         st.session_state.wizard_data = {
             'name': '',
             'weekly_budget': 75,
+            'household_size': 1,
             'snap_status': False,
             'wic_status': False,
             'zip_code': '77001',
@@ -881,19 +928,35 @@ Always be encouraging and non-judgmental. Meet people where they are."""
 def get_ai_response(user_message: str) -> Optional[str]:
     """Get a response from AI (Gemini or OpenAI)."""
     provider = st.session_state.ai_provider
+    st.session_state.ai_error = None
+    st.session_state.last_ai_provider = None
     
     # Try Gemini first if selected
-    if provider == 'gemini' and GEMINI_AVAILABLE and st.session_state.gemini_api_key:
+    if provider == 'gemini':
+        if not st.session_state.gemini_api_key:
+            st.session_state.ai_error = (
+                "Gemini is selected, but GEMINI_API_KEY was not loaded. "
+                "Check .env and restart Streamlit."
+            )
+            return None
+        if not GEMINI_AVAILABLE:
+            st.session_state.ai_error = (
+                "The Google Gen AI SDK is missing. Run "
+                "`python -m pip install -r requirements.txt`."
+            )
+            return None
         try:
-            genai.configure(api_key=st.session_state.gemini_api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')  # Free, fast model
-            
             # Build prompt with system context and conversation history
             system_prompt = build_system_prompt()
             
             # Build conversation history
             history = ""
             recent_messages = st.session_state.chat_messages[-10:]
+            if recent_messages and (
+                recent_messages[-1].get("role") == "user"
+                and recent_messages[-1].get("content") == user_message
+            ):
+                recent_messages = recent_messages[:-1]
             for msg in recent_messages:
                 role = "User" if msg["role"] == "user" else "Assistant"
                 history += f"{role}: {msg['content']}\n\n"
@@ -907,14 +970,27 @@ User: {user_message}
 
 Assistant:"""
             
-            response = model.generate_content(full_prompt)
-            return response.text
-        except Exception as e:
-            st.session_state.ai_error = str(e)
+            response = generate_text(
+                full_prompt,
+                api_key=st.session_state.gemini_api_key,
+            )
+            st.session_state.last_ai_provider = "Gemini"
+            return response
+        except GeminiRequestError as exc:
+            st.session_state.ai_error = str(exc)
+            return None
+        except Exception:
+            LOGGER.exception("Unexpected Gemini chatbot failure")
+            st.session_state.ai_error = "Gemini chatbot failed unexpectedly. Check the app terminal."
             return None
     
     # Try OpenAI if selected
-    if provider == 'openai' and OPENAI_AVAILABLE and st.session_state.openai_api_key:
+    if provider == 'openai':
+        if not st.session_state.openai_api_key or not OPENAI_AVAILABLE:
+            st.session_state.ai_error = (
+                "OpenAI is selected, but its API key or Python package is unavailable."
+            )
+            return None
         try:
             client = OpenAI(api_key=st.session_state.openai_api_key)
             
@@ -936,11 +1012,20 @@ Assistant:"""
                 temperature=0.7
             )
             
-            return response.choices[0].message.content
+            answer = response.choices[0].message.content
+            if not answer:
+                st.session_state.ai_error = "OpenAI returned an empty response."
+                return None
+            st.session_state.last_ai_provider = "OpenAI"
+            return answer
         except Exception as e:
-            st.session_state.ai_error = str(e)
+            LOGGER.exception("OpenAI chatbot request failed")
+            st.session_state.ai_error = (
+                "OpenAI request failed. Check the API key, quota, and network."
+            )
             return None
     
+    st.session_state.ai_error = f"Unknown AI provider selected: {provider}."
     return None
 
 
@@ -955,7 +1040,11 @@ def get_chatbot_response(user_message: str) -> str:
         return ai_response
     
     # Fall back to rule-based responses
-    return get_rule_based_response(user_message)
+    return (
+        "I couldn't reach the AI assistant, so this is a local, rule-based "
+        "response and may be limited.\n\n"
+        + get_rule_based_response(user_message)
+    )
 
 
 def get_rule_based_response(user_message: str) -> str:
@@ -1195,11 +1284,26 @@ def render_chatbot():
     """Render the chatbot interface."""
     st.markdown(f"### 💬 {t('ask_nutrition_assistant')}")
     
-    # Simple AI status indicator (API keys come from environment variables)
-    if st.session_state.gemini_api_key:
-        st.caption("✨ Powered by Gemini AI")
-    elif st.session_state.openai_api_key:
-        st.caption("✨ Powered by GPT-4")
+    if st.session_state.last_ai_provider:
+        st.success(f"AI response generated by {st.session_state.last_ai_provider}.")
+    elif st.session_state.ai_error:
+        st.warning(
+            "AI is not responding; the chat uses local rule-based replies. "
+            + st.session_state.ai_error
+        )
+    elif st.session_state.ai_provider == "gemini":
+        if GEMINI_AVAILABLE and st.session_state.gemini_api_key:
+            st.caption(
+                "Gemini is configured. It is confirmed only after a successful "
+                "response; the chat may use local replies if a request fails."
+            )
+        else:
+            st.caption(
+                "Gemini is not configured. Add GEMINI_API_KEY and use the "
+                "Google Gen AI SDK to enable AI responses."
+            )
+    elif st.session_state.ai_provider == "openai":
+        st.caption("OpenAI is selected; successful responses are identified below.")
     else:
         st.caption("Ask me about health terms, nutrients, or how to use this app!")
     
@@ -1243,7 +1347,8 @@ def render_sidebar():
             value=st.session_state.spanish_mode,
             help="Toggle Spanish translation / Activar traducción al español"
         )
-        
+
+        render_account_controls()
         st.markdown("---")
         
         if st.session_state.analysis_complete:
@@ -1286,6 +1391,7 @@ def render_sidebar():
                 st.session_state.wizard_data = {
                     'name': '',
                     'weekly_budget': 75,
+                    'household_size': 1,
                     'snap_status': False,
                     'wic_status': False,
                     'zip_code': '77001',
@@ -1329,14 +1435,275 @@ def run_analysis():
     """Run the full analysis pipeline."""
     user = st.session_state.user_context
     if user:
+        st.session_state.analysis_complete = False
+        try:
+            resource_results = retrieve_houston_resources(user)
+        except ResourceLookupError as exc:
+            st.error(str(exc))
+            return
+
         st.session_state.nutrient_priorities = analyze_lab_data(user)
-        st.session_state.resource_map = resource_locator(user)
+        st.session_state.rag_resources = resource_results.resources
+        st.session_state.resource_source = resource_results.source
+
+        # Do not expose the old synthetic store directory as real locations.
+        st.session_state.resource_map = ResourceMap(
+            user_zip=user.logistics.zip_code,
+            accessible_stores=[],
+            food_pantries=[],
+            snap_stores=[],
+            all_stores=[]
+        )
         st.session_state.shopping_list = generate_shopping_list(
             user,
             st.session_state.nutrient_priorities,
             st.session_state.resource_map
         )
+        st.session_state.meal_plan = None
+        st.session_state.meal_plan_error = None
+        try:
+            food_names = [
+                item.food.name for item in st.session_state.shopping_list.items
+            ]
+            st.session_state.meal_plan = generate_meal_plan(
+                user,
+                food_names,
+                api_key=st.session_state.gemini_api_key,
+            )
+        except MealPlanError as exc:
+            st.session_state.meal_plan_error = str(exc)
         st.session_state.analysis_complete = True
+
+
+def _clear_user_session():
+    """Clear the active profile and derived plan when an account signs out."""
+    st.session_state.auth_user = None
+    st.session_state.user_context = None
+    st.session_state.nutrient_priorities = None
+    st.session_state.resource_map = None
+    st.session_state.shopping_list = None
+    st.session_state.rag_resources = None
+    st.session_state.meal_plan = None
+    st.session_state.meal_plan_error = None
+    st.session_state.analysis_complete = False
+    apply_profile_to_wizard({}, st.session_state.wizard_data)
+    for key in (
+        "wizard_symptoms",
+        "wizard_family_history",
+        "wizard_allergies",
+        "wizard_health_goals",
+    ):
+        st.session_state.pop(key, None)
+
+
+def _handle_pending_profile_load():
+    """Apply a profile before rendering the wizard's keyed widgets."""
+    profile = st.session_state.pending_saved_profile
+    if profile is None:
+        return
+
+    st.session_state.pending_saved_profile = None
+    apply_profile_to_wizard(profile, st.session_state.wizard_data)
+    st.session_state.wizard_symptoms = []
+    st.session_state.wizard_family_history = []
+    allergy_labels = {
+        "Gluten": "Gluten",
+        "Dairy": "Dairy",
+        "Shellfish": "Shellfish",
+        "Tree Nuts": "Tree Nuts",
+        "Peanuts": "Peanuts",
+        "Eggs": "Eggs",
+        "Soy": "Soy",
+        "Fish": "Fish",
+        "Corn": "Corn",
+        "Sesame": "Sesame",
+        "Nightshades": "Nightshades",
+        "Sulfites": "Sulfites",
+        "Histamine": "Histamine",
+        "FODMAPs": "FODMAPs",
+        "Latex-Fruit": "Latex-Fruit",
+    }
+    allergy_keys = {value.casefold(): key for key, value in allergy_labels.items()}
+    st.session_state.wizard_data["allergies"] = [
+        t(allergy_keys.get(str(allergy).casefold(), str(allergy)))
+        for allergy in st.session_state.wizard_data["allergies"]
+    ]
+    diet_keys = {
+        "vegetarian": "vegetarian",
+        "vegan": "vegan",
+        "pescatarian": "pescatarian",
+        "keto/low-carb": "keto",
+        "mediterranean": "mediterranean",
+    }
+    diet_key = diet_keys.get(
+        str(st.session_state.wizard_data["dietary_preference"]).casefold()
+    )
+    if diet_key:
+        st.session_state.wizard_data["dietary_preference"] = t(diet_key)
+    st.session_state.wizard_allergies = st.session_state.wizard_data["allergies"]
+    st.session_state.wizard_health_goals = []
+    st.session_state.user_context = build_user_from_wizard()
+    run_analysis()
+    st.rerun()
+
+
+def render_account_controls():
+    """Render email authentication and private profile controls."""
+    url = os.getenv("SUPABASE_URL", "")
+    anon_key = os.getenv("SUPABASE_ANON_KEY", "")
+    if not url or not anon_key:
+        st.caption(
+            "Accounts and profile saving require SUPABASE_URL and "
+            "SUPABASE_ANON_KEY in the server environment."
+        )
+        return
+
+    try:
+        if st.session_state.supabase_client is None:
+            st.session_state.supabase_client = create_supabase_client(url, anon_key)
+    except Exception:
+        LOGGER.exception("Could not initialize Supabase client")
+        st.error("Could not initialize Supabase. Check the project URL and anon key.")
+        return
+
+    client = st.session_state.supabase_client
+    account = st.session_state.auth_user
+    if account:
+        st.caption(f"Signed in as {account['email']}")
+
+        if st.button("Load saved profile", use_container_width=True):
+            try:
+                response = (
+                    client.table("eatwell_profiles")
+                    .select(
+                        "weekly_budget,household_size,snap_status,wic_status,"
+                        "zip_code,has_vehicle,has_transit,trips_per_week,"
+                        "dietary_preference,allergies"
+                    )
+                    .eq("user_id", account["id"])
+                    .limit(1)
+                    .execute()
+                )
+                if response.data:
+                    st.session_state.pending_saved_profile = response.data[0]
+                    st.rerun()
+                else:
+                    st.info("No saved profile found for this account.")
+            except Exception:
+                LOGGER.exception("Could not load saved Supabase profile")
+                st.error(
+                    "Could not load the saved profile. Check that the Supabase "
+                    "profile table and owner-only policies are installed."
+                )
+
+        if (
+            st.session_state.user_context
+            and st.session_state.user_context.user_id == "sample_user_001"
+        ):
+            st.caption("The demo profile is synthetic and cannot be saved.")
+        elif st.session_state.user_context:
+            st.caption(
+                "Saved profiles include budget, household size, Houston ZIP, "
+                "transport access, benefit status, diet preference, and allergies. "
+                "They exclude symptoms, diagnoses, lab results, and genetic data."
+            )
+            if st.button("Save current profile", use_container_width=True):
+                try:
+                    client.table("eatwell_profiles").upsert(
+                        {
+                            "user_id": account["id"],
+                            **profile_from_user(st.session_state.user_context),
+                        },
+                        on_conflict="user_id",
+                    ).execute()
+                    st.success("Profile saved to your private Supabase account.")
+                except Exception:
+                    LOGGER.exception("Could not save Supabase profile")
+                    st.error(
+                        "Could not save the profile. Check your connection and "
+                        "the Supabase owner-only policies."
+                    )
+
+        confirm_delete = st.checkbox("Confirm deleting my saved profile")
+        if confirm_delete and st.button(
+            "Delete saved profile", use_container_width=True
+        ):
+            try:
+                client.table("eatwell_profiles").delete().eq(
+                    "user_id", account["id"]
+                ).execute()
+                st.success("Saved profile deleted.")
+            except Exception:
+                LOGGER.exception("Could not delete Supabase profile")
+                st.error("Could not delete the saved profile.")
+
+        if st.button("Sign out", use_container_width=True):
+            try:
+                client.auth.sign_out()
+            except Exception:
+                LOGGER.exception("Supabase sign-out failed")
+                st.error("Could not complete sign-out with Supabase.")
+                return
+            _clear_user_session()
+            st.rerun()
+        return
+
+    with st.expander("Sign in or create an account", expanded=False):
+        auth_action = st.radio(
+            "Account action",
+            ["Sign in", "Create account"],
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+        with st.form("supabase_auth_form", clear_on_submit=True):
+            email = st.text_input("Email", autocomplete="email")
+            password = st.text_input(
+                "Password",
+                type="password",
+                autocomplete="current-password",
+            )
+            submitted = st.form_submit_button(
+                auth_action,
+                use_container_width=True,
+            )
+
+        if submitted:
+            if not email.strip() or not password:
+                st.error("Enter both an email address and password.")
+                return
+            try:
+                if auth_action == "Create account":
+                    response = client.auth.sign_up(
+                        {"email": email.strip(), "password": password}
+                    )
+                    if response.session is None:
+                        st.success(
+                            "Account created. Check your email to confirm it, "
+                            "then sign in."
+                        )
+                        return
+                else:
+                    response = client.auth.sign_in_with_password(
+                        {"email": email.strip(), "password": password}
+                    )
+
+                if not response.user or not response.session:
+                    st.error(
+                        "Supabase did not return an authenticated session. "
+                        "Check email confirmation settings and try again."
+                    )
+                    return
+                st.session_state.auth_user = {
+                    "id": str(response.user.id),
+                    "email": response.user.email or email.strip(),
+                }
+                account = st.session_state.auth_user
+                _clear_user_session()
+                st.session_state.auth_user = account
+                st.success("Signed in.")
+                st.rerun()
+            except Exception as exc:
+                st.error(f"Supabase authentication failed: {exc}")
 
 
 def build_user_from_wizard():
@@ -1359,10 +1726,30 @@ def build_user_from_wizard():
         max_travel_distance_miles=15.0 if data['has_vehicle'] else (5.0 if data['has_transit'] else 2.0)
     )
     
+    allergy_map = {
+        t("Gluten").casefold(): "gluten",
+        t("Dairy").casefold(): "dairy",
+        t("Shellfish").casefold(): "shellfish",
+        t("Tree Nuts").casefold(): "tree nuts",
+        t("Peanuts").casefold(): "peanuts",
+        t("Eggs").casefold(): "eggs",
+        t("Soy").casefold(): "soy",
+        t("Fish").casefold(): "fish",
+        t("Corn").casefold(): "corn",
+        t("Sesame").casefold(): "sesame",
+        t("Nightshades").casefold(): "nightshades",
+        t("Sulfites").casefold(): "sulfites",
+        t("Histamine").casefold(): "histamine",
+        t("FODMAPs").casefold(): "fodmaps",
+        t("Latex-Fruit").casefold(): "latex-fruit",
+    }
     medical = MedicalHistory(
         family_history=[h.lower().replace(" ", "_") for h in data['family_history']],
         current_symptoms=[s.lower().replace(" ", "_") for s in data['current_symptoms']],
-        known_allergies=[a.lower() for a in data['allergies']]
+        known_allergies=[
+            allergy_map.get(a.casefold(), a.casefold())
+            for a in data['allergies']
+        ]
     )
     
     lab_results = None
@@ -1433,7 +1820,8 @@ def build_user_from_wizard():
         logistics=logistics,
         medical=medical,
         lab_results=lab_results,
-        demographics=demographics
+        demographics=demographics,
+        household_size=int(data.get('household_size', 1))
     )
 
 
@@ -1459,6 +1847,12 @@ def render_wizard():
         with col1:
             data['name'] = st.text_input(t("your_name"), value=data['name'], placeholder=t("enter_your_name"))
             data['weekly_budget'] = st.slider(t("weekly_grocery_budget"), 20, 300, data['weekly_budget'], step=5)
+            data['household_size'] = st.number_input(
+                t("household_size"),
+                min_value=1,
+                max_value=20,
+                value=int(data.get('household_size', 1))
+            )
             
             st.markdown(f"**{t('benefits')}**")
             col_snap, col_wic = st.columns(2)
@@ -1736,10 +2130,14 @@ def render_dashboard():
         )
     
     with col3:
+        pantry_count = sum(
+            "pantry" in str(resource.get("resource_type", "")).lower()
+            for resource in (st.session_state.rag_resources or [])
+        )
         st.metric(
             t("nearby_stores"),
-            len(resources.accessible_stores),
-            delta=f"{len(resources.food_pantries)} {t('pantries')}"
+            len(st.session_state.rag_resources or []),
+            delta=f"{pantry_count} {t('pantries')}"
         )
     
     with col4:
@@ -1785,6 +2183,19 @@ def render_dashboard():
 
 def render_shopping_list(shopping: ShoppingList, user: UserContext, nutrients: NutrientPriorityList):
     """Render the shopping list tab."""
+    st.markdown("## 🍽️ Your draft weekly meal plan")
+    if st.session_state.meal_plan:
+        st.markdown(st.session_state.meal_plan)
+        st.caption(
+            "AI-generated meal ideas based on your planned shopping list and "
+            "stated dietary constraints. Only those foods, household size, "
+            "diet preference, and allergies are sent to Gemini; no name, ZIP, "
+            "lab values, or genetic data are included. This is not medical "
+            "advice; food costs and availability are estimates."
+        )
+    elif st.session_state.meal_plan_error:
+        st.warning(st.session_state.meal_plan_error)
+    st.markdown("---")
     st.markdown(f"## 🛒 {t('your_shopping_list')}")
     
     # Budget bar - now includes transportation
@@ -1932,10 +2343,224 @@ def render_nutrient_analysis(nutrients: NutrientPriorityList, user: UserContext)
 
 
 def render_store_finder(resources: ResourceMap, user: UserContext):
-    """Render the store finder tab with map visualization."""
+    """Render Houston resources with source and verification metadata."""
     st.markdown(f"## 📍 {t('nearby_food_resources')}")
-    
-    st.info(f"📍 {t('showing_results_for')}: **{resources.user_zip}** | 🚗 {t('mobility')}: **{user.logistics.mobility_level.upper()}**")
+
+    matches = st.session_state.rag_resources or []
+    st.info(
+        f"📍 {t('showing_results_for')}: **{user.logistics.zip_code}** | "
+        f"Source: **{st.session_state.resource_source}**"
+    )
+    st.caption(
+        "Listings are ranked using known ZIP-code matches and resource details. "
+        "Confirm eligibility, hours, and public access before travelling."
+    )
+
+    if not matches:
+        st.info(
+            "No Houston resource records are available for this search. "
+            "Please try again later or use the provider directories below."
+        )
+        return
+
+    mapped_resources = mappable_resources(matches)
+    if FOLIUM_AVAILABLE and mapped_resources:
+        st.markdown("### 🗺️ Houston resource map")
+        st.caption(
+            "Select a marker to view the resource details. Pins show approximate "
+            "street-address locations, not guaranteed entrances or distribution "
+            "sites; confirm details with the provider before travelling."
+        )
+        resource_map = build_resource_map(mapped_resources)
+        st_folium(
+            resource_map,
+            key="houston_food_resource_map",
+            height=460,
+            use_container_width=True,
+            returned_objects=[],
+        )
+        st.caption(
+            "Map data © OpenStreetMap contributors. "
+            f"Showing {len(mapped_resources)} of {len(matches)} resources with "
+            "mapped public-facing addresses."
+        )
+    elif not FOLIUM_AVAILABLE:
+        st.info(
+            "The interactive resource map is unavailable because Folium is not "
+            "installed. You can still use the resource listings and directions links."
+        )
+    route_modes = ["Driving", "Public transit", "Walking", "Bicycling"]
+    default_mode = (
+        "Driving"
+        if user.logistics.has_vehicle
+        else "Public transit"
+        if user.logistics.has_public_transit
+        else "Walking"
+    )
+    travel_mode = st.selectbox(
+        "Travel mode for directions",
+        route_modes,
+        index=route_modes.index(default_mode),
+        key="resource_route_mode",
+    )
+    st.caption(
+        "Directions use your ZIP code as an approximate starting point. The ZIP "
+        "code and destination address are included in the link to Google Maps; "
+        "precise device location is not used."
+    )
+
+    routable_resources = [
+        resource
+        for resource in matches
+        if resource.get("address")
+        and "directory" not in str(resource.get("resource_type", "")).lower()
+        and "food_bank_and_referral"
+        not in str(resource.get("resource_type", "")).lower()
+    ]
+    routes_api_configured = bool(os.getenv("ROUTES_API_KEY", "").strip())
+    estimate_routes = False
+    if routes_api_configured:
+        estimate_routes = st.button(
+            "Estimate routes inside EatWell",
+            disabled=not routable_resources,
+            help=(
+                "No visit locations with street addresses are available."
+                if not routable_resources
+                else None
+            ),
+        )
+    else:
+        st.caption(
+            "In-app route estimates are an optional, separate feature that "
+            "requires a configured Google Routes API key and billing."
+        )
+    if estimate_routes:
+        origin = f"{user.logistics.zip_code}, Houston, TX"
+        estimates = {}
+        failures = []
+        with st.spinner("Requesting route estimates from Google Maps Platform..."):
+            for resource in routable_resources:
+                address_parts = [
+                    resource.get("address"),
+                    resource.get("city") or "Houston",
+                    resource.get("state") or "TX",
+                    resource.get("zip_code"),
+                ]
+                destination = ", ".join(str(part) for part in address_parts if part)
+                resource_id = str(
+                    resource.get("resource_id")
+                    or resource.get("name")
+                    or destination
+                )
+                try:
+                    estimates[resource_id] = compute_route(
+                        origin,
+                        destination,
+                        travel_mode,
+                    )
+                except RouteLookupError as exc:
+                    LOGGER.warning("Route estimate failed for %s: %s", resource_id, exc)
+                    failures.append(str(exc))
+        st.session_state.route_estimates = {
+            "zip_code": user.logistics.zip_code,
+            "travel_mode": travel_mode,
+            "estimates": estimates,
+        }
+        if failures:
+            st.warning(failures[0])
+            if len(failures) > 1:
+                st.caption(
+                    f"Route calculation also failed for {len(failures) - 1} "
+                    "other listing(s)."
+                )
+
+    saved_routes = st.session_state.route_estimates
+    if (
+        not isinstance(saved_routes, dict)
+        or saved_routes.get("zip_code") != user.logistics.zip_code
+        or saved_routes.get("travel_mode") != travel_mode
+    ):
+        saved_routes = {}
+
+    for resource in matches:
+        resource_type = str(resource.get("resource_type") or "food resource")
+        address_parts = [
+            resource.get("address"),
+            resource.get("city") or "Houston",
+            resource.get("state") or "TX",
+            resource.get("zip_code"),
+        ]
+        address = ", ".join(str(part) for part in address_parts if part)
+        resource_id = str(
+            resource.get("resource_id")
+            or resource.get("name")
+            or address
+        )
+        with st.container():
+            st.markdown(f"### {resource.get('name', 'Houston food resource')}")
+            st.caption(resource_type.replace("_", " ").title())
+            st.caption(f"Why shown: {resource.get('match_reason', 'Houston resource')}")
+
+            if address:
+                st.write(address)
+            elif "directory" in resource_type:
+                st.write("Houston-wide resource directory; not a visit location.")
+            else:
+                st.write("Street address not available in the source record.")
+
+            if resource.get("description"):
+                st.write(resource["description"])
+            if resource.get("access_notes"):
+                st.write(f"**Before you go:** {resource['access_notes']}")
+            if resource.get("eligibility"):
+                st.write(f"**Eligibility:** {resource['eligibility']}")
+            elif resource.get("resource_type") != "grocery_store":
+                st.write("**Eligibility:** Not specified; contact the provider.")
+            if resource.get("required_documents"):
+                st.write(
+                    "**Documents listed:** "
+                    + ", ".join(resource["required_documents"])
+                )
+            if resource.get("hours"):
+                hours = resource["hours"]
+                hours_text = (
+                    "; ".join(f"{day.title()}: {hours_text}"
+                              for day, hours_text in hours.items())
+                    if isinstance(hours, dict)
+                    else str(hours)
+                )
+                st.write(f"**Hours listed:** {hours_text}")
+            if resource.get("phone"):
+                st.write(f"**Phone:** {resource['phone']}")
+            if resource.get("last_verified"):
+                st.caption(
+                    f"Last verified in source: {resource['last_verified']} · "
+                    f"{resource.get('verification_status', 'verification status unknown').replace('_', ' ')}"
+                )
+            if resource.get("source_url"):
+                st.link_button("Open source / verify details", resource["source_url"])
+            if (
+                address
+                and "directory" not in resource_type.lower()
+                and "food_bank_and_referral" not in resource_type.lower()
+            ):
+                directions_url = google_maps_directions_url(
+                    f"{user.logistics.zip_code}, Houston, TX",
+                    address,
+                    travel_mode,
+                )
+                st.link_button("Get directions in Google Maps", directions_url)
+            route = saved_routes.get("estimates", {}).get(resource_id)
+            if route:
+                distance_miles = route.distance_meters / 1609.344
+                duration_minutes = max(1, round(route.duration_seconds / 60))
+                st.success(
+                    f"Estimated {travel_mode.lower()} route from ZIP-area "
+                    f"origin: {duration_minutes} min, {distance_miles:.1f} mi. "
+                    "Actual travel time may vary."
+                )
+
+    return
     
     # Map visualization
     if FOLIUM_AVAILABLE and resources.accessible_stores:
@@ -2372,6 +2997,7 @@ def main():
     """Main application entry point."""
     init_session_state()
     render_sidebar()
+    _handle_pending_profile_load()
     
     # Full-width main content area (chatbot is now a tab)
     if st.session_state.analysis_complete:
