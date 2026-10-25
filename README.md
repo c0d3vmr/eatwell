@@ -57,9 +57,10 @@ To configure Supabase:
 2. Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in the app's server environment. Configure `SUPABASE_SERVICE_ROLE_KEY` only when running the trusted admin sync script.
 3. Enable email sign-up/sign-in in Supabase Authentication settings and allow the app's URL (for local testing, `http://localhost:8501`).
 4. Set `GEMINI_API_KEY` to enable draft meal-plan generation. The app uses the
-   current `google-genai` SDK and defaults to `gemini-2.5-flash`; set
+   current `google-genai` SDK and defaults to `gemini-3.8-flash`; set
    `GEMINI_MODEL` in `.env` only if you need to select another model available
-   to your API key.
+   to your API key. If `GEMINI_MODEL` is set in the hosting provider's
+   environment, update it there as well; that value overrides the app default.
 5. For in-app route estimates, enable **Routes API** in the Google Cloud project
    linked to your Google Maps Platform key, configure billing, and set
    `ROUTES_API_KEY` in the app server's `.env`. Restrict the key to Routes API

@@ -93,7 +93,7 @@ class HoustonRetrievalTests(unittest.TestCase):
             generate_meal_plan(make_user(), ["Oats"])
 
     @patch("google.genai.Client")
-    @patch.dict("os.environ", {"GEMINI_MODEL": "gemini-2.5-flash"})
+    @patch.dict("os.environ", {"GEMINI_MODEL": "gemini-3.8-flash"})
     def test_gemini_text_helper_returns_generated_text(self, client_class):
         client = client_class.return_value
         client.models.generate_content.return_value = SimpleNamespace(
@@ -104,7 +104,7 @@ class HoustonRetrievalTests(unittest.TestCase):
 
         self.assertEqual(result, "A generated response.")
         client.models.generate_content.assert_called_once_with(
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             contents="test prompt",
         )
 

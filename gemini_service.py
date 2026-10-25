@@ -3,6 +3,9 @@
 import os
 
 
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+
+
 class GeminiRequestError(RuntimeError):
     """A safe, user-facing Gemini API failure."""
 
@@ -23,9 +26,7 @@ def generate_text(prompt: str, api_key: str | None = None) -> str:
             "`python -m pip install -r requirements.txt` in the app environment."
         ) from exc
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
-    if not model:
-        model = "gemini-2.5-flash"
+    model = os.getenv("GEMINI_MODEL", "").strip() or DEFAULT_GEMINI_MODEL
     try:
         client = genai.Client(api_key=key)
         response = client.models.generate_content(
